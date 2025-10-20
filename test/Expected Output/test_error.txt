@@ -1,0 +1,11 @@
+KEYWORD(int)
+ERROR(@)
+IDENTIFIER(value)
+ASSIGN_OP(=)
+NUMBER(5)
+SEMICOLON(;)
+KEYWORD(output)
+LEFT_PAREN
+STRING(Invalid variable test)
+RIGHT_PAREN
+SEMICOLON(;)
