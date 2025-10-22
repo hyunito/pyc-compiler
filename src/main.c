@@ -27,6 +27,16 @@ int main() {
                     printf("ASSIGN_OP(=)\n");
                 } else if (c == ';') {
                     printf("SEMICOLON(;)\n");
+                } else if (c == '(') {
+                    printf("LEFT_PAREN\n");
+                } else if (c == ')') {
+                    printf("RIGHT_PAREN\n");
+                } else if (c == '>') {
+                    printf("REL_OP(>)\n");
+                } else if (c == '{') {
+                    printf("LEFT_BRACE({)\n");
+                } else if (c == '}') {
+                    printf("RIGHT_BRACE(})\n");
                 } else if (isspace(c)) {
                    
                 } else if (c == '"') {
@@ -41,7 +51,7 @@ int main() {
                     buffer[idx++] = c;
                 } else {
                     buffer[idx] = '\0';
-                    if (strcmp(buffer, "int") == 0 || strcmp(buffer, "float") == 0 || strcmp(buffer, "output") == 0)
+                    if (strcmp(buffer, "int") == 0 || strcmp(buffer, "float") == 0 || strcmp(buffer, "output") == 0 || strcmp(buffer, "bool") == 0 || strcmp(buffer, "True") == 0 || strcmp(buffer, "if") == 0 || strcmp(buffer, "else") == 0)
                         printf("KEYWORD(%s)\n", buffer);
                     else
                         printf("IDENTIFIER(%s)\n", buffer);
