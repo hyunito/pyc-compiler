@@ -31,12 +31,48 @@ int main() {
                     printf("LEFT_PAREN\n");
                 } else if (c == ')') {
                     printf("RIGHT_PAREN\n");
+                } else if (c == '<') {
+                    int next = fgetc(fp);
+                    if (next == '=') {
+                        printf("REL_OP(<=)\n");
+                    } else {
+                        printf("REL_OP(<)\n");
+                        ungetc(next, fp);
+                    }
                 } else if (c == '>') {
-                    printf("REL_OP(>)\n");
+                    int next = fgetc(fp);
+                    if (next == '=') {
+                        printf("REL_OP(>=)\n");
+                    } else {
+                        printf("REL_OP(>)\n");
+                        ungetc(next, fp);
+                    }
+                } else if (c == '-') {
+                    int next = fgetc(fp);
+                    if (next == '-') {
+                        printf("DECREMENT\n");
+                    } else {
+                        printf("ARITH_OP(-)\n");
+                        ungetc(next, fp);
+                    }
                 } else if (c == '{') {
                     printf("LEFT_BRACE({)\n");
                 } else if (c == '}') {
                     printf("RIGHT_BRACE(})\n");
+                } else if (c == '[') {
+                    printf("LEFT_BRACKET([)\n");
+                } else if (c == ']') {
+                    printf("RIGHT_BRACKET(])\n");
+                } else if (c == ',') {
+                    printf("COMMA(,)\n");
+                } else if (c == '+') {
+                    int next = fgetc(fp);
+                    if (next == '+') {
+                        printf("INCREMENT\n");
+                    } else {
+                        printf("ARITH_OP(+)\n");
+                        ungetc(next, fp);
+                    }
                 } else if (isspace(c)) {
                    
                 } else if (c == '"') {
@@ -51,7 +87,7 @@ int main() {
                     buffer[idx++] = c;
                 } else {
                     buffer[idx] = '\0';
-                    if (strcmp(buffer, "int") == 0 || strcmp(buffer, "float") == 0 || strcmp(buffer, "output") == 0 || strcmp(buffer, "bool") == 0 || strcmp(buffer, "True") == 0 || strcmp(buffer, "if") == 0 || strcmp(buffer, "else") == 0)
+                    if (strcmp(buffer, "int") == 0 || strcmp(buffer, "float") == 0 || strcmp(buffer, "output") == 0 || strcmp(buffer, "bool") == 0 || strcmp(buffer, "True") == 0 || strcmp(buffer, "if") == 0 || strcmp(buffer, "else") == 0 || strcmp(buffer, "while") == 0 || strcmp(buffer, "for") == 0)
                         printf("KEYWORD(%s)\n", buffer);
                     else
                         printf("IDENTIFIER(%s)\n", buffer);
