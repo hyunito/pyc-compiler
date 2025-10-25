@@ -2,13 +2,7 @@
 #include <ctype.h>
 #include <string.h>
 
-int main() {
-    FILE *fp = fopen("../test/test_basic.pyclang", "r");
-    if (!fp) {
-        printf("Error: could not open file.\n");
-        return 1;
-    }
-
+void analyzeLexicalTokens(FILE *fp) {
     char c;
     int state = 0;
     char buffer[100];
@@ -87,7 +81,7 @@ int main() {
                     buffer[idx++] = c;
                 } else {
                     buffer[idx] = '\0';
-                    if (strcmp(buffer, "int") == 0 || strcmp(buffer, "float") == 0 || strcmp(buffer, "output") == 0 || strcmp(buffer, "bool") == 0 || strcmp(buffer, "True") == 0 || strcmp(buffer, "if") == 0 || strcmp(buffer, "else") == 0 || strcmp(buffer, "while") == 0 || strcmp(buffer, "for") == 0)
+                    if (strcmp(buffer, "int") == 0 || strcmp(buffer, "float") == 0 || strcmp(buffer, "output") == 0 || strcmp(buffer, "bool") == 0 || strcmp(buffer, "True") == 0 || strcmp(buffer, "if") == 0 || strcmp(buffer, "else") == 0 || strcmp(buffer, "while") == 0 || strcmp(buffer, "for") == 0 || strcmp(buffer, "str") == 0)
                         printf("KEYWORD(%s)\n", buffer);
                     else
                         printf("IDENTIFIER(%s)\n", buffer);
@@ -123,7 +117,35 @@ int main() {
                 break;
         }
     }
+}
 
+int main() {
+    FILE *fp = fopen("../test/test_basic.pyclang", "r");
+    if (!fp) {
+        printf("Error: could not open file.\n");
+        return 1;
+    }
+
+    analyzeLexicalTokens(fp);
     fclose(fp);
+    
+    FILE *fp_loops = fopen("../test/test_loops.pyclang", "r");
+    if (!fp_loops) {
+        printf("Error: could not open test_loops file.\n");
+        return 1;
+    }
+
+    analyzeLexicalTokens(fp_loops);
+    fclose(fp_loops);
+    
+    FILE *fp_edgecases = fopen("../test/test_edgecases.pyclang", "r");
+    if (!fp_edgecases) {
+        printf("Error: could not open test_edgecases file.\n");
+        return 1;
+    }
+
+    analyzeLexicalTokens(fp_edgecases);
+    fclose(fp_edgecases);
+    
     return 0;
 }
