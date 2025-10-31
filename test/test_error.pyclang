@@ -1,7 +1,0 @@
-int @value = 5 / 4;
-#TESTING the code
-/* Thus
-is
-comment"*/
-value == 5; and or not
-output("Invalid variable test");
