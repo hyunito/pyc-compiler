@@ -1,6 +1,39 @@
-main(){
+#This is a single-line comment
 
-231
+int main() {
+    int a = 9;
+    float b = 10.5;
+    bool isTrue = True;
+    char letter = 'A';
+    str message = "The sum of a and b is:";
 
-int 1able  !=0;
+    c = a + b;
+    d = a - b;
+    e = a * b;
+    f = a / b;
+    g = a % 2;
+    h = a // 2;
+    i = a ** 2;
+
+    if (a <= b and not False) {
+        output("Condition: a <= b");
+    } else {
+        output("Condition: a > b");
+    }
+
+    a++;
+    b--;
+
+    while (a < 20) {
+        a = a + 1;
+        if (a == 15) {
+            break;
+        }
+    }
+
+    output("The final value of a is {a}.");
 }
+
+/* Multi-line comment test
+   Line 2 of comment
+   End of comment */

@@ -159,13 +159,15 @@ int main() {
                         ungetc(next, fp);
                     }
                 } else if (c == '%') {
-                    printf("ARITH_OP(%)\n");
-                    fprintf(out, "ARITH_OP(%)\n");
+                    printf("ARITH_OP(%%)\n");
+                    fprintf(out, "ARITH_OP(%%)\n");
                 }else if (isspace(c)) {
 
                 } else if (c == '"') {
                     state = 3; 
-                } else {
+                } else if (c == '\'') {
+                    state = 6;
+                }else {
                     printf("ERROR(%c)\n", c);
                     fprintf(out,"ERROR(%c)\n", c);
                 }
@@ -189,8 +191,14 @@ int main() {
                         printf("NOISE_WORD(%s)\n", buffer);
                         fprintf(out, "NOISE_WORD(%s)\n", buffer);
                     } else {
-                        printf("IDENTIFIER(%s)\n", buffer);
-                        fprintf(out,"IDENTIFIER(%s)\n", buffer);
+                        if (c != '!' && c != '}' && c != '@' && c != '#' && c != '$' && c != '^' && c != ')' && c != '&' && c != '|' && c != '\\'){
+                            printf("IDENTIFIER(%s)\n", buffer);
+                            fprintf(out,"IDENTIFIER(%s)\n", buffer);
+                        } else {
+                            printf("ERROR(%c)\n", c);
+                            fprintf(out,"ERROR(%c)\n", c);
+                            c = fgetc(fp);
+                        }
                     }
                     idx = 0;
                     state = 0;
@@ -257,6 +265,21 @@ int main() {
                     buffer[idx++] = c;
                 }
                 break;
+            case 6:
+                int next = fgetc(fp);
+                if (next == '\'') {
+                    buffer[idx] = '\0';
+                    printf("CHAR(%c)\n", c);
+                    fprintf(out, "CHAR(%c)\n", c);
+                    idx = 0;
+                    state = 0;
+                } else {
+                    printf("ERROR(%c)\n", c);
+                    fprintf(out,"ERROR(%c)\n", c);
+                    ungetc(next, fp);
+                }
+
+
         }
     }
 
