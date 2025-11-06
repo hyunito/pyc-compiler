@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <ctype.h>
-#include <string.h>
 
 int str_equal(const char *a, const char *b) {
     int i = 0;
@@ -30,28 +29,28 @@ const char *noise_words[] = {
     "then","begin","end","do"
 };
 
-int isKeyword(const char *word) {
+int keyword(const char *word) {
     int count = sizeof(keywords)/sizeof(keywords[0]);
     for (int i = 0; i < count; i++)
         if (str_equal(word, keywords[i])) return 1;
     return 0;
 }
 
-int isReserved(const char *word) {
+int reserve(const char *word) {
     int count = sizeof(reserved)/sizeof(reserved[0]);
     for (int i = 0; i < count; i++)
         if (str_equal(word, reserved[i])) return 1;
     return 0;
 }
 
-int isLogical(const char *word) {
+int logical(const char *word) {
     int count = sizeof(logical_ops)/sizeof(logical_ops[0]);
     for (int i = 0; i < count; i++)
         if (str_equal(word, logical_ops[i])) return 1;
     return 0;
 }
 
-int isNoise(const char *word) {
+int noise(const char *word) {
     int count = sizeof(noise_words)/sizeof(noise_words[0]);
     for (int i = 0; i < count; i++)
         if (str_equal(word, noise_words[i])) return 1;
@@ -61,7 +60,10 @@ int isNoise(const char *word) {
 int main() {
     char filename[] = "input.pyclang";
 
-    int len = strlen(filename);
+    int len = 0;
+    while (filename[len] != '\0') {
+        len++;
+    }
     if (len < 8 || !str_equal(filename + (len - 8), ".pyclang")) {
         printf("Error: Invalid file type. Must be .pyclang\n");
         return 1;
@@ -211,20 +213,19 @@ int main() {
                 buffer[idx++] = c;
             } else {
                 buffer[idx] = '\0';
-
-                if (isKeyword(buffer)) {
+                if (keyword(buffer)) {
                     printf("KEYWORD(%s)\n", buffer);
                     fprintf(out, "KEYWORD(%s)\n", buffer);
                 }
-                else if (isReserved(buffer)) {
+                else if (reserve(buffer)) {
                     printf("RESERVED_WORD(%s)\n", buffer);
                     fprintf(out, "RESERVED_WORD(%s)\n", buffer);
                 }
-                else if (isLogical(buffer)) {
+                else if (logical(buffer)) {
                     printf("LOGICAL(%s)\n", buffer);
                     fprintf(out, "LOGICAL(%s)\n", buffer);
                 }
-                else if (isNoise(buffer)) {
+                else if (noise(buffer)) {
                     printf("NOISE_WORD(%s)\n", buffer);
                     fprintf(out, "NOISE_WORD(%s)\n", buffer);
                 }

@@ -133,7 +133,7 @@ RIGHT_PAREN())
 SEMICOLON(;)
 RIGHT_BRACE(})
 COMMENT_START(/*)
-COM_STR( Multi-line comment test
+COM_STR(Multi-line comment test
    Line 2 of comment
-   End of comment )
+   End of comment * Should end with)
 COMMENT_END(*/)

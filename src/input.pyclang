@@ -34,6 +34,6 @@ int main() {
     output("The final value of a is {a}.");
 }
 
-/* Multi-line comment test
+/*Multi-line comment test
    Line 2 of comment
-   End of comment */
+   End of comment * Should end with*/
