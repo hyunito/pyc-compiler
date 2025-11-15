@@ -1,0 +1,58 @@
+#This is a single-line comment
+
+void main() {
+begin
+    int a[1] = 9;
+    float b = 10.5;
+    bool isTrue = True;
+    char letter = 'A';
+    str message = "The sum of a and b is:";
+    const pi = 3.14
+
+    c = a + b;
+    d = a - b;
+    e = a * b;
+    f = a / b;
+    g = a % 2;
+    h = a // 2;
+    i = a ** 2;
+
+    a != b
+    b > a
+    b >= a
+
+    if (a <= b and not False) then {
+        output("Condition: a <= b");
+    } else if(a <= b or True){
+        output("Condition: a > b");
+    } else{
+	continue:
+    }
+
+
+    while (a < 20) do {
+        a = a + 1;
+        if (a == 15) {
+            break;
+        }
+    }
+    for(i = 0; i < g; i++){
+	if(c == null){
+	return:
+	}
+	i--;
+	}
+
+    output("The final value of a is {a}.");
+    int z = int(input("Enter a value: "))
+    return;
+end;
+}
+
+/*Multi-line comment test
+   Line 2 of comment
+   End of comment * Should end with*/
+
+
+
+

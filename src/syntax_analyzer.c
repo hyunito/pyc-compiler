@@ -123,10 +123,24 @@ void parseStatement() {
         parseAssignment();
         return;
     }
+    if (strcmp(peek().type, "RESERVED_WORD") == 0) {
+        parseDeclaration();
+        return;
+    }
 
     printf("Syntax Error: Unknown statement starting with %s\n",
            peek().type);
     recover();
+}
+void parseDeclaration() {
+    match("RESERVED_WORD");
+    match("IDENTIFIER");
+
+    if (strcmp(peek().type, "ASSIGN_OP") == 0) {
+        match("ASSIGN_OP");
+        parseExpression();
+    }
+    match("SEMICOLON");
 }
 
 void parseIf() {
