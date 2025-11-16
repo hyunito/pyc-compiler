@@ -11,13 +11,50 @@ typedef struct {
 Token tokens[MAX_TOKENS];
 int tokenCount = 0;
 int current = 0;
+int errorCount = 0;
+
+static Token EOF_TOKEN = { "EOF", "" };
+
+int isAtEnd() {
+    return current >= tokenCount;
+}
 
 Token peek() {
+    if (isAtEnd()) return EOF_TOKEN;
     return tokens[current];
 }
 
 void advance() {
-    if (current < tokenCount - 1) current++;
+    if (!isAtEnd()) current++;
+}
+
+void recover() {
+    if (isAtEnd()) return;
+    // move past the token that caused the error to avoid infinite loop
+    advance();
+
+    while (!isAtEnd()) {
+        if (strcmp(tokens[current].type, "SEMICOLON") == 0) {
+            advance(); // consume semicolon and resume
+            return;
+        }
+        if (strcmp(tokens[current].type, "RIGHT_BRACE") == 0) {
+            return; // let outer parser handle }
+        }
+        if (strcmp(tokens[current].type, "RESERVED_WORD") == 0 ||
+            strcmp(tokens[current].type, "IDENTIFIER") == 0) {
+            return; // likely start of next statement
+        }
+        if (strcmp(tokens[current].type, "KEYWORD") == 0) {
+            if (strcmp(tokens[current].value, "if") == 0 ||
+                strcmp(tokens[current].value, "for") == 0 ||
+                strcmp(tokens[current].value, "while") == 0 ||
+                strcmp(tokens[current].value, "return") == 0) {
+                return;
+            }
+        }
+        advance();
+    }
 }
 
 int match(const char* expected) {
@@ -29,19 +66,9 @@ int match(const char* expected) {
     printf("Syntax Error: Expected %s but got %s (%s)\n",
            expected, peek().type, peek().value);
 
+    errorCount++;
     recover();
     return 0;
-}
-
-void recover() {
-
-    while (current < tokenCount &&
-           strcmp(tokens[current].type, "SEMICOLON") != 0 &&
-           strcmp(tokens[current].type, "RIGHT_BRACE") != 0) {
-        current++;
-    }
-
-    if (current < tokenCount) current++;
 }
 
 int findMain() {
@@ -69,6 +96,7 @@ void parseAssignment();
 void parseExpression();
 void parseTerm();
 void parseFactor();
+void parseDeclaration();
 
 void parseProgram() {
     int start = findMain();
@@ -234,6 +262,7 @@ void parseFactor() {
     }
 
     printf("Syntax Error: Expected NUMBER, IDENTIFIER, or '('\n");
+    errorCount++;
     recover();
 }
 
@@ -269,5 +298,6 @@ int main() {
 
     fclose(fp);
     parseProgram();
+    printf("Parsing finished. Errors: %d\n", errorCount); // simple summary
     return 0;
 }
