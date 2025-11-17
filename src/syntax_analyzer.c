@@ -44,7 +44,7 @@ Token peekAt(int offset);
 
 Token peek() {
     if (LOGGING) {
-        printf("[LOG] peek(): Returning %s at position %d\n", 
+        printf("[LOG] peek(): Returning %s at position %d\n",
                isAtEnd() ? "EOF" : tokens[current].type, current);
     }
 
@@ -69,7 +69,7 @@ void logger(const char* message) {
 
 void debug_state(const char* action) {
     if (DEBUG) {
-        printf("[DEBUG] %s | Current: %s('%s') | Pos: %d/%d | Errors: %d\n", 
+        printf("[DEBUG] %s | Current: %s('%s') | Pos: %d/%d | Errors: %d\n",
                action, peek().type, peek().value, current, tokenCount, errorCount);
     }
 }
@@ -92,7 +92,7 @@ void advance() {
 
 void recover() {
     if (LOGGING) {
-        printf("[LOG] recover(): Starting error recovery at %s('%s')\n", 
+        printf("[LOG] recover(): Starting error recovery at %s('%s')\n",
                peek().type, peek().value);
     }
 
@@ -125,7 +125,7 @@ void recover() {
 
 int match(const char* expected) {
     if (LOGGING) {
-        printf("[LOG] match(): Looking for '%s', found '%s'\n", 
+        printf("[LOG] match(): Looking for '%s', found '%s'\n",
                expected, peek().type);
     }
 
@@ -204,6 +204,7 @@ void parseBlock();
 void parseStatement();
 void parseDeclaration();
 void parseAssignment();
+int expectCondition();
 void parseIf();
 void parseWhile();
 void parseFor();
@@ -232,7 +233,7 @@ void parseProgram() {
 
     current = start;
 
-    if (!match("KEYWORD")) return; 
+    if (!match("KEYWORD")) return;
     match("LEFT_PAREN");
     match("RIGHT_PAREN");
 
@@ -368,65 +369,219 @@ void parseDeclaration() {
     match("SEMICOLON");
 }
 
-void parseIf() {
-    match("KEYWORD");
+int expectCondition() {
+    if (strcmp(peek().type, "LEFT_PAREN") != 0) {
+        printf("Syntax Error: Expected '(' to start condition but got %s (%s)\n",
+               peek().type, peek().value);
+        errorCount++;
+        recover();
+        return 0;
+    }
     match("LEFT_PAREN");
+
+    if (isAtEnd() || strcmp(peek().type, "RIGHT_PAREN") == 0) {
+        printf("Syntax Error: Expected condition expression inside parentheses.\n");
+        errorCount++;
+        recover();
+        return 0;
+    }
+
     parseExpression();
+
+    if (strcmp(peek().type, "RIGHT_PAREN") != 0) {
+        printf("Syntax Error: Expected ')' to close condition but got %s (%s)\n",
+               peek().type, peek().value);
+        errorCount++;
+        recover();
+        return 0;
+    }
     match("RIGHT_PAREN");
-    parseBlock();
-    
-    while (isKeyword("else")) {
-        match("KEYWORD");
-        if (isKeyword("if")) {
-            match("KEYWORD");
-            match("LEFT_PAREN");
-            parseExpression();
-            match("RIGHT_PAREN");
+    return 1;
+}
+
+void parseIf() {
+    if (strcmp(peek().type, "KEYWORD") != 0 || strcmp(peek().value, "if") != 0) {
+        printf("Internal Error: parseIf called but current token is %s (%s)\n", peek().type, peek().value);
+        errorCount++;
+        recover();
+        return;
+    }
+    match("KEYWORD");
+
+    if (!expectCondition()) {
+        if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
             parseBlock();
         } else {
-            
-            parseBlock();
+            parseStatement();
+        }
+        return;
+    }
+
+    if (isKeyword("then")) match("KEYWORD");
+
+    if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+        parseBlock();
+        if (isKeyword("end")) match("KEYWORD");
+    } else {
+        parseStatement();
+    }
+
+    while (isKeyword("else")) {
+        match("KEYWORD");
+
+        if (isKeyword("if")) {
+            match("KEYWORD");
+            if (!expectCondition()) {
+                if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+                    parseBlock();
+                } else {
+                    parseStatement();
+                }
+                break;
+            }
+            if (isKeyword("then")) match("KEYWORD");
+
+            if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+                parseBlock();
+                if (isKeyword("end")) match("KEYWORD");
+            } else {
+                parseStatement();
+            }
+        } else {
+            if (isKeyword("then")) match("KEYWORD");
+            if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+                parseBlock();
+                if (isKeyword("end")) match("KEYWORD");
+            } else {
+                parseStatement();
+            }
             break;
         }
     }
 }
 
 void parseWhile() {
+    if (strcmp(peek().type, "KEYWORD") != 0 || strcmp(peek().value, "while") != 0) {
+        printf("Internal Error: parseWhile called but current token is %s (%s)\n", peek().type, peek().value);
+        errorCount++;
+        recover();
+        return;
+    }
     match("KEYWORD");
-    match("LEFT_PAREN");
-    parseExpression();
-    match("RIGHT_PAREN");
+
+    if (!expectCondition()) {
+        if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+            parseBlock();
+        } else {
+            parseStatement();
+        }
+        return;
+    }
+
     if (isKeyword("do")) match("KEYWORD");
-    parseBlock();
+
+    if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+        parseBlock();
+        if (isKeyword("end")) match("KEYWORD");
+    } else {
+        parseStatement();
+    }
 }
 
 void parseFor() {
+    if (strcmp(peek().type, "KEYWORD") != 0 || strcmp(peek().value, "for") != 0) {
+        printf("Internal Error: parseFor called but current token is %s (%s)\n", peek().type, peek().value);
+        errorCount++;
+        recover();
+        return;
+    }
     match("KEYWORD");
-    match("LEFT_PAREN");
 
-    
+    if (strcmp(peek().type, "LEFT_PAREN") != 0) {
+        printf("Syntax Error: Expected '(' after for but got %s (%s)\n", peek().type, peek().value);
+        errorCount++;
+        recover();
+    } else {
+        match("LEFT_PAREN");
+    }
+
+    /* ---- Initialization ----
+       could be:
+         ;             -> empty init
+         declaration   -> int i = 0;
+         assignment    -> i = 0;
+    */
+    int initConsumedSemicolon = 0;
     if (strcmp(peek().type, "SEMICOLON") == 0) {
         match("SEMICOLON");
+        initConsumedSemicolon = 1;
     } else if (strcmp(peek().type, "RESERVED_WORD") == 0 && isTypeValue(peek().value)) {
         parseDeclaration();
+        initConsumedSemicolon = 1;
     } else {
-        
-        parseAssignment();
-        match("SEMICOLON");
+        if (strcmp(peek().type, "IDENTIFIER") == 0 && strcmp(peekNext().type, "ASSIGN_OP") == 0) {
+            parseAssignment();
+            initConsumedSemicolon = 1;
+        } else {
+            parseExpression();
+            if (strcmp(peek().type, "SEMICOLON") == 0) {
+                match("SEMICOLON");
+                initConsumedSemicolon = 1;
+            } else {
+                printf("Syntax Error: Expected ';' after for-initialization but got %s (%s)\n",
+                       peek().type, peek().value);
+                errorCount++;
+                recover();
+            }
+        }
+    }
+
+    /* ---- Condition (middle) ----
+       either ; (empty) or an expression followed by ;
+    */
+    if (!initConsumedSemicolon) {
+        if (strcmp(peek().type, "SEMICOLON") == 0) {
+            match("SEMICOLON");
+        } else {
+            printf("Syntax Error: Expected ';' after for-initialization but got %s (%s)\n",
+                   peek().type, peek().value);
+            errorCount++;
+            recover();
+        }
     }
 
     if (strcmp(peek().type, "SEMICOLON") == 0) {
         match("SEMICOLON");
     } else {
         parseExpression();
-        match("SEMICOLON");
+        if (strcmp(peek().type, "SEMICOLON") == 0) {
+            match("SEMICOLON");
+        } else {
+            printf("Syntax Error: Expected ';' after for-condition but got %s (%s)\n",
+                   peek().type, peek().value);
+            errorCount++;
+            recover();
+        }
     }
+
+    /* ---- Update (third expression) ----
+       could be empty, assignment, increment/decrement, or expression
+    */
     if (strcmp(peek().type, "RIGHT_PAREN") == 0) {
         /* nothing */
     } else {
         if (strcmp(peek().type, "IDENTIFIER") == 0 && strcmp(peekNext().type, "ASSIGN_OP") == 0) {
-            parseAssignment();
-        } else if (strcmp(peek().type, "IDENTIFIER") == 0 && (strcmp(peekNext().type, "INCREMENT") == 0 || strcmp(peekNext().type, "DECREMENT") == 0)) {
+            char namebuf[100];
+            strncpy(namebuf, peek().value, sizeof(namebuf)-1);
+            namebuf[sizeof(namebuf)-1] = '\0';
+            match("IDENTIFIER");
+            match("ASSIGN_OP");
+            parseExpression();
+            if (!isIdentifierDeclared(namebuf)) {
+                printf("Warning: Identifier '%s' assigned but not declared.\n", namebuf);
+            }
+        } else if (strcmp(peek().type, "IDENTIFIER") == 0 &&
+                   (strcmp(peekNext().type, "INCREMENT") == 0 || strcmp(peekNext().type, "DECREMENT") == 0)) {
             match("IDENTIFIER");
             advance();
         } else if (strcmp(peek().type, "INCREMENT") == 0 || strcmp(peek().type, "DECREMENT") == 0) {
@@ -437,10 +592,24 @@ void parseFor() {
         }
     }
 
-    match("RIGHT_PAREN");
+    if (strcmp(peek().type, "RIGHT_PAREN") == 0) {
+        match("RIGHT_PAREN");
+    } else {
+        printf("Syntax Error: Expected ')' to close for loop header but got %s (%s)\n",
+               peek().type, peek().value);
+        errorCount++;
+        recover();
+    }
 
+    /* optional 'do' */
     if (isKeyword("do")) match("KEYWORD");
-    parseBlock();
+
+    if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+        parseBlock();
+        if (isKeyword("end")) match("KEYWORD");
+    } else {
+        parseStatement();
+    }
 }
 
 void parseAssignment() {
@@ -457,7 +626,7 @@ void parseAssignment() {
     match("IDENTIFIER");
     match("ASSIGN_OP");
 
-    
+
     if (strcmp(peek().type, "KEYWORD") == 0 && strcmp(peek().value, "input") == 0) {
         match("KEYWORD");
         match("LEFT_PAREN");
@@ -475,7 +644,7 @@ void parseAssignment() {
 }
 
 void parseArrayAssignment() {
-    
+
     match("IDENTIFIER");
     match("LEFT_BRACKET");
 
@@ -563,14 +732,14 @@ void parseFunctionDef() {
         recover();
         return;
     }
-    
+
     char fname[100];
     strncpy(fname, peek().value, sizeof(fname)-1);
     fname[sizeof(fname)-1] = '\0';
     match("IDENTIFIER");
 
     match("LEFT_PAREN");
-    
+
     if (!(strcmp(peek().type, "RIGHT_PAREN") == 0)) {
         while (1) {
             if (strcmp(peek().type, "RESERVED_WORD") != 0 || !isTypeValue(peek().value)) {
@@ -597,7 +766,7 @@ void parseFunctionDef() {
     }
     match("RIGHT_PAREN");
 
-    
+
     parseBlock();
 }
 
@@ -676,7 +845,7 @@ void parseFactor() {
         strcmp(peek().type, "CHAR") == 0) {
         advance();
     } else if (strcmp(peek().type, "IDENTIFIER") == 0) {
-        
+
         if (strcmp(peekNext().type, "LEFT_PAREN") == 0) {
             parseFunctionCall();
         } else {
@@ -698,7 +867,7 @@ void parseFactor() {
         match("RIGHT_PAREN");
     } else if (strcmp(peek().type, "RESERVED_WORD") == 0 &&
                (strcmp(peek().value, "True") == 0 || strcmp(peek().value, "False") == 0)) {
-        
+
         advance();
     } else {
         printf("Syntax Error: Missing operand - Expected NUMBER, IDENTIFIER, STRING, or '(' but got %s (%s)\n",
