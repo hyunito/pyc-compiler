@@ -2,18 +2,25 @@
 #include <string.h>
 
 #define MAX_TOKENS 5000
-#define LOGGING 0  // 1 to enable, 0 to disable
-#define DEBUG 0 // 1 to enable, 0 to disable
 
 typedef struct {
     char type[50];
     char value[100];
 } Token;
 
+typedef struct {
+    char name[100];
+    int isDeclared;
+} Identifier;
+
 Token tokens[MAX_TOKENS];
 int tokenCount = 0;
 int current = 0;
 int errorCount = 0;
+
+// Symbol table for tracking declared identifiers
+Identifier symbolTable[MAX_IDENTIFIERS];
+int symbolCount = 0;
 
 static Token EOF_TOKEN = { "EOF", "" };
 
@@ -112,6 +119,30 @@ int match(const char* expected) {
     return 0;
 }
 
+// Add identifier to symbol table
+void declareIdentifier(const char* name) {
+    for (int i = 0; i < symbolCount; i++) {
+        if (strcmp(symbolTable[i].name, name) == 0) {
+            return; // Already declared
+        }
+    }
+    if (symbolCount < MAX_IDENTIFIERS) {
+        strcpy(symbolTable[symbolCount].name, name);
+        symbolTable[symbolCount].isDeclared = 1;
+        symbolCount++;
+    }
+}
+
+// Check if identifier is declared
+int isIdentifierDeclared(const char* name) {
+    for (int i = 0; i < symbolCount; i++) {
+        if (strcmp(symbolTable[i].name, name) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int findMain() {
     for (int i = 0; i < tokenCount - 3; i++) {
 
@@ -135,6 +166,11 @@ void parseWhile();
 void parseFor();
 void parseAssignment();
 void parseExpression();
+void parseLogicalOr();
+void parseLogicalAnd();
+void parseLogicalNot();
+void parseRelational();
+void parseArithmetic();
 void parseTerm();
 void parseFactor();
 void parseDeclaration();
@@ -201,8 +237,15 @@ void parseStatement() {
            peek().type);
     recover();
 }
+
 void parseDeclaration() {
     match("RESERVED_WORD");
+    
+    Token idToken = peek();
+    if (strcmp(idToken.type, "IDENTIFIER") == 0) {
+        declareIdentifier(idToken.value);
+    }
+    
     match("IDENTIFIER");
 
     if (strcmp(peek().type, "ASSIGN_OP") == 0) {
@@ -255,54 +298,184 @@ void parseFor() {
     parseBlock();
 }
 
+// parseAssignment - validates identifier usage
 void parseAssignment() {
+    Token idToken = peek();
+    
+    // Validate identifier is declared
+    if (strcmp(idToken.type, "IDENTIFIER") == 0) {
+        if (!isIdentifierDeclared(idToken.value)) {
+            printf("Semantic Error: Identifier '%s' used before declaration\n", 
+                   idToken.value);
+            errorCount++;
+        }
+    }
+    
     match("IDENTIFIER");
     match("ASSIGN_OP");
     parseExpression();
     match("SEMICOLON");
 }
 
+// parseExpression - handles logical operators (lowest precedence)
 void parseExpression() {
+    parseLogicalOr();
+}
+
+// Logical OR has lowest precedence
+void parseLogicalOr() {
+    parseLogicalAnd();
+    
+    while (strcmp(peek().type, "LOGICAL") == 0 &&
+           strcmp(peek().value, "or") == 0) {
+        advance();
+        parseLogicalAnd();
+    }
+}
+
+// Logical AND has higher precedence than OR
+void parseLogicalAnd() {
+    parseLogicalNot();
+    
+    while (strcmp(peek().type, "LOGICAL") == 0 &&
+           strcmp(peek().value, "and") == 0) {
+        advance();
+        parseLogicalNot();
+    }
+}
+
+// Logical NOT (unary operator)
+void parseLogicalNot() {
+    if (strcmp(peek().type, "LOGICAL") == 0 &&
+        strcmp(peek().value, "not") == 0) {
+        advance();
+        parseLogicalNot(); // Right associative
+        return;
+    }
+    
+    parseRelational();
+}
+
+// Relational operators (==, <, <=, >, >=, !=)
+void parseRelational() {
+    parseArithmetic();
+    
+    while (strcmp(peek().type, "REL_OP") == 0) {
+        char op[10];
+        strcpy(op, peek().value);
+        advance();
+        
+        parseArithmetic();
+    }
+}
+
+// Arithmetic: Addition and Subtraction (lower precedence)
+void parseArithmetic() {
     parseTerm();
+    
     while (strcmp(peek().type, "ARITH_OP") == 0 &&
           (strcmp(peek().value, "+") == 0 ||
            strcmp(peek().value, "-") == 0)) {
-
+        char op[10];
+        strcpy(op, peek().value);
         advance();
+        
+        Token next = peek();
+        if (strcmp(next.type, "ARITH_OP") == 0 ||
+            strcmp(next.type, "REL_OP") == 0 ||
+            strcmp(next.type, "LOGICAL") == 0) {
+            printf("Syntax Error: Unexpected operator '%s' after '%s'\n", 
+                   next.value, op);
+            errorCount++;
+            recover();
+            return;
+        }
+        
         parseTerm();
     }
 }
 
+// parseTerm - handles *, /, %, //, ** (higher precedence)
 void parseTerm() {
     parseFactor();
+    
     while (strcmp(peek().type, "ARITH_OP") == 0 &&
           (strcmp(peek().value, "*") == 0 ||
-           strcmp(peek().value, "/") == 0)) {
-
+           strcmp(peek().value, "/") == 0 ||
+           strcmp(peek().value, "%") == 0 ||
+           strcmp(peek().value, "//") == 0 ||
+           strcmp(peek().value, "**") == 0)) {
+        
+        char op[10];
+        strcpy(op, peek().value);
         advance();
+        
+        // Check for consecutive operators (error detection)
+        Token next = peek();
+        if (strcmp(next.type, "ARITH_OP") == 0 ||
+            strcmp(next.type, "REL_OP") == 0 ||
+            strcmp(next.type, "LOGICAL") == 0) {
+            printf("Syntax Error: Unexpected operator '%s' after '%s'\n", 
+                   next.value, op);
+            errorCount++;
+            recover();
+            return;
+        }
+        
         parseFactor();
     }
 }
 
+// parseFactor - handles identifiers, numbers, parentheses
 void parseFactor() {
+    // Handle numbers
     if (strcmp(peek().type, "NUMBER") == 0) {
         advance();
         return;
     }
 
+    // Handle identifiers with validation
     if (strcmp(peek().type, "IDENTIFIER") == 0) {
+        Token idToken = peek();
+        
+        // Validate identifier is declared
+        if (!isIdentifierDeclared(idToken.value)) {
+            printf("Semantic Error: Identifier '%s' used before declaration\n", 
+                   idToken.value);
+            errorCount++;
+        }
+        
         advance();
         return;
     }
 
+    // Handle parenthesized expressions
     if (strcmp(peek().type, "LEFT_PAREN") == 0) {
         advance();
         parseExpression();
+        
+        if (strcmp(peek().type, "RIGHT_PAREN") != 0) {
+            printf("Syntax Error: Missing closing parenthesis\n");
+            errorCount++;
+            recover();
+            return;
+        }
+        
         match("RIGHT_PAREN");
         return;
     }
+    
+    // Handle boolean literals
+    if (strcmp(peek().type, "RESERVED_WORD") == 0 &&
+        (strcmp(peek().value, "True") == 0 ||
+         strcmp(peek().value, "False") == 0)) {
+        advance();
+        return;
+    }
 
-    printf("Syntax Error: Expected NUMBER, IDENTIFIER, or '('\n");
+    // Error: Missing operand
+    printf("Syntax Error: Missing operand - Expected NUMBER, IDENTIFIER, or '(' but got %s (%s)\n",
+           peek().type, peek().value);
     errorCount++;
     recover();
 }
