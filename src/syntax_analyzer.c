@@ -3,6 +3,8 @@
 
 #define MAX_TOKENS 5000
 #define MAX_IDENTIFIERS 1000
+#define LOGGING 0             // 1 to enable, 0 to disable
+#define DEBUG 0               // 1 to enable, 0 to disable
 
 /* Default logging/debug flags (can be overridden at compile time) */
 #ifndef LOGGING
