@@ -2,6 +2,16 @@
 #include <string.h>
 
 #define MAX_TOKENS 5000
+#define MAX_IDENTIFIERS 1000
+
+/* Default logging/debug flags (can be overridden at compile time) */
+#ifndef LOGGING
+#define LOGGING 0
+#endif
+
+#ifndef DEBUG
+#define DEBUG 0
+#endif
 
 typedef struct {
     char type[50];
