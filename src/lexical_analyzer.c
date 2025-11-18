@@ -58,7 +58,7 @@ int noise(const char *word) {
 }
 
 int main() {
-    char filename[] = "input.pyclang";
+    char filename[] = "sample.pyclang";
 
     int len = 0;
     while (filename[len] != '\0') {

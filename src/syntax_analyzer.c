@@ -1,19 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_TOKENS 5000
+#define MAX_TOKENS 9999
 #define MAX_IDENTIFIERS 1000
-#define LOGGING 0             // 1 to enable, 0 to disable
-#define DEBUG 0               // 1 to enable, 0 to disable
-
-/* Default logging/debug flags (can be overridden at compile time) */
-#ifndef LOGGING
-#define LOGGING 0
-#endif
-
-#ifndef DEBUG
+#define LOGGING 0          // 1 to enable, 0 to disable
 #define DEBUG 0
-#endif
 
 typedef struct {
     char type[50];
@@ -30,7 +21,6 @@ int tokenCount = 0;
 int current = 0;
 int errorCount = 0;
 
-// Symbol table for tracking declared identifiers
 Identifier symbolTable[MAX_IDENTIFIERS];
 int symbolCount = 0;
 
@@ -142,11 +132,10 @@ int match(const char* expected) {
     return 0;
 }
 
-// Add identifier to symbol table
 void declareIdentifier(const char* name) {
     for (int i = 0; i < symbolCount; i++) {
         if (strcmp(symbolTable[i].name, name) == 0) {
-            return; // Already declared
+            return;
         }
     }
     if (symbolCount < MAX_IDENTIFIERS) {
@@ -157,7 +146,6 @@ void declareIdentifier(const char* name) {
     }
 }
 
-// Check if identifier is declared
 int isIdentifierDeclared(const char* name) {
     for (int i = 0; i < symbolCount; i++) {
         if (strcmp(symbolTable[i].name, name) == 0) {
@@ -213,7 +201,6 @@ void parseInputStatement();
 void parseFunctionDef();
 void parseFunctionCall();
 void parseArrayAssignment();
-void skipComment();
 
 void parseExpression();
 void parseLogicalOr();
@@ -249,16 +236,10 @@ void parseBlock() {
 
     match("RIGHT_BRACE");
 
-    if (isKeyword("end")) match("KEYWORD");
+    if (isKeyword("end")) match("NOISE_WORD");
 }
 
 void parseStatement() {
-    if (strcmp(peek().type, "COMMENT") == 0 ||
-        strcmp(peek().type, "COMMENT_START") == 0) {
-        skipComment();
-        return;
-    }
-
     if (isKeyword("if")) { parseIf(); return; }
 
     if (isKeyword("while")) { parseWhile(); return; }
@@ -292,7 +273,7 @@ void parseStatement() {
         return;
     }
 
-    if (isKeyword("begin")) { match("KEYWORD"); parseBlock(); if (isKeyword("end")) match("KEYWORD"); return; }
+    if (isKeyword("begin")) { match("NOISE_WORD"); parseBlock(); if (isKeyword("end")) match("NOISE_WORD"); return; }
     if (strcmp(peek().type, "LEFT_BRACE") == 0) { parseBlock(); return; }
 
     if (strcmp(peek().type, "RESERVED_WORD") == 0 && isTypeValue(peek().value)) {
@@ -331,13 +312,13 @@ void parseStatement() {
         return;
     }
 
+
     printf("Syntax Error: Unknown statement starting with %s (%s)\n", peek().type, peek().value);
     errorCount++;
     recover();
 }
 
 void parseDeclaration() {
-    /* type id (= expr)? (, id (=expr)? )* ; */
     match("RESERVED_WORD");
 
     if (strcmp(peek().type, "IDENTIFIER") != 0) {
@@ -417,11 +398,11 @@ void parseIf() {
         return;
     }
 
-    if (isKeyword("then")) match("KEYWORD");
+    if (isKeyword("then")) match("NOISE_WORD");
 
     if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
         parseBlock();
-        if (isKeyword("end")) match("KEYWORD");
+        if (isKeyword("end")) match("NOISE_WORD");
     } else {
         parseStatement();
     }
@@ -439,19 +420,19 @@ void parseIf() {
                 }
                 break;
             }
-            if (isKeyword("then")) match("KEYWORD");
+            if (isKeyword("then")) match("NOISE_WORD");
 
             if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
                 parseBlock();
-                if (isKeyword("end")) match("KEYWORD");
+                if (isKeyword("end")) match("NOISE_WORD");
             } else {
                 parseStatement();
             }
         } else {
-            if (isKeyword("then")) match("KEYWORD");
+            if (isKeyword("then")) match("NOISE_WORD");
             if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
                 parseBlock();
-                if (isKeyword("end")) match("KEYWORD");
+                if (isKeyword("end")) match("NOISE_WORD");
             } else {
                 parseStatement();
             }
@@ -461,7 +442,9 @@ void parseIf() {
 }
 
 void parseWhile() {
+
     if (strcmp(peek().type, "KEYWORD") != 0 || strcmp(peek().value, "while") != 0) {
+
         printf("Internal Error: parseWhile called but current token is %s (%s)\n", peek().type, peek().value);
         errorCount++;
         recover();
@@ -478,11 +461,11 @@ void parseWhile() {
         return;
     }
 
-    if (isKeyword("do")) match("KEYWORD");
+
 
     if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
         parseBlock();
-        if (isKeyword("end")) match("KEYWORD");
+        if (isKeyword("end")) match("NOISE_WORD");
     } else {
         parseStatement();
     }
@@ -505,12 +488,6 @@ void parseFor() {
         match("LEFT_PAREN");
     }
 
-    /* ---- Initialization ----
-       could be:
-         ;             -> empty init
-         declaration   -> int i = 0;
-         assignment    -> i = 0;
-    */
     int initConsumedSemicolon = 0;
     if (strcmp(peek().type, "SEMICOLON") == 0) {
         match("SEMICOLON");
@@ -536,9 +513,6 @@ void parseFor() {
         }
     }
 
-    /* ---- Condition (middle) ----
-       either ; (empty) or an expression followed by ;
-    */
     if (!initConsumedSemicolon) {
         if (strcmp(peek().type, "SEMICOLON") == 0) {
             match("SEMICOLON");
@@ -564,11 +538,9 @@ void parseFor() {
         }
     }
 
-    /* ---- Update (third expression) ----
-       could be empty, assignment, increment/decrement, or expression
-    */
+
     if (strcmp(peek().type, "RIGHT_PAREN") == 0) {
-        /* nothing */
+
     } else {
         if (strcmp(peek().type, "IDENTIFIER") == 0 && strcmp(peekNext().type, "ASSIGN_OP") == 0) {
             char namebuf[100];
@@ -601,12 +573,12 @@ void parseFor() {
         recover();
     }
 
-    /* optional 'do' */
-    if (isKeyword("do")) match("KEYWORD");
+
+    if (isKeyword("do")) match("NOISE_WORD");
 
     if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
         parseBlock();
-        if (isKeyword("end")) match("KEYWORD");
+        if (isKeyword("end")) match("NOISE_WORD");
     } else {
         parseStatement();
     }
@@ -882,23 +854,6 @@ void parseFactor() {
     }
 }
 
-void skipComment() {
-    if (strcmp(peek().type, "COMMENT") == 0 || strcmp(peek().type, "COM_STR") == 0) {
-        advance();
-        return;
-    }
-
-    if (strcmp(peek().type, "COMMENT_START") == 0) {
-        advance();
-        while (!isAtEnd() && strcmp(peek().type, "COMMENT_END") != 0) {
-            advance();
-        }
-        if (!isAtEnd()) advance();
-        return;
-    }
-
-    advance();
-}
 
 int main() {
     FILE *fp = fopen("Symbol_Table.txt", "r");
@@ -916,17 +871,18 @@ int main() {
         char *open = strchr(line, '(');
         char *close = strrchr(line, ')');
 
-        if (!open || !close || close < open) {
-            printf("Warning: Skipping malformed line: %s\n", line);
-            continue;
-        }
-
         int typeLength = open - line;
         if (typeLength >= sizeof(tokens[tokenCount].type)) {
             typeLength = sizeof(tokens[tokenCount].type) - 1;
         }
         strncpy(tokens[tokenCount].type, line, typeLength);
         tokens[tokenCount].type[typeLength] = '\0';
+        if (strcmp(tokens[tokenCount].type, "COMMENT") == 0 || strcmp(tokens[tokenCount].type, "COM_STR") == 0 || strcmp(tokens[tokenCount].type, "COMMENT_END") == 0) {
+            continue;
+        }
+        if (!open || !close || close < open) {
+            continue;
+        }
 
         int valueLength = close - open - 1;
         if (valueLength >= sizeof(tokens[tokenCount].value)) {
