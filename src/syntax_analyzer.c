@@ -3,7 +3,7 @@
 
 #define MAX_TOKENS 9999
 #define MAX_IDENTIFIERS 1000
-#define LOGGING 0          // 1 to enable, 0 to disable
+#define LOGGING 0         // 1 to enable, 0 to disable
 #define DEBUG 0
 
 typedef struct {
@@ -160,6 +160,11 @@ int isKeyword(const char* k) {
     return strcmp(t.type, "KEYWORD") == 0 && strcmp(t.value, k) == 0;
 }
 
+int isNoise(const char* w) {
+    return strcmp(peek().type, "NOISE_WORD") == 0 &&
+           strcmp(peek().value, w) == 0;
+}
+
 int isKeywordAt(int offset, const char* k) {
     Token t = peekAt(offset);
     return strcmp(t.type, "KEYWORD") == 0 && strcmp(t.value, k) == 0;
@@ -179,7 +184,8 @@ int findMain() {
             strcmp(tokens[i].value, "main") == 0 &&
             strcmp(tokens[i+1].type, "LEFT_PAREN") == 0 &&
             strcmp(tokens[i+2].type, "RIGHT_PAREN") == 0 &&
-            strcmp(tokens[i+3].type, "LEFT_BRACE") == 0) {
+            (strcmp(tokens[i+3].type, "NOISE_WORD") == 0 ||
+            strcmp(tokens[i+3].type, "LEFT_BRACE") == 0)) {
             return i;
         }
     }
@@ -228,6 +234,10 @@ void parseProgram() {
 }
 
 void parseBlock() {
+    if (isNoise("begin")) {
+        match("NOISE_WORD");
+    }
+
     match("LEFT_BRACE");
 
     while (!isAtEnd() && strcmp(peek().type, "RIGHT_BRACE") != 0) {
@@ -236,7 +246,7 @@ void parseBlock() {
 
     match("RIGHT_BRACE");
 
-    if (isKeyword("end")) match("NOISE_WORD");
+    if (isNoise("end")) match("NOISE_WORD");
 }
 
 void parseStatement() {
@@ -273,7 +283,7 @@ void parseStatement() {
         return;
     }
 
-    if (isKeyword("begin")) { match("NOISE_WORD"); parseBlock(); if (isKeyword("end")) match("NOISE_WORD"); return; }
+    if (isNoise("begin")) { match("NOISE_WORD"); parseBlock();  return; }
     if (strcmp(peek().type, "LEFT_BRACE") == 0) { parseBlock(); return; }
 
     if (strcmp(peek().type, "RESERVED_WORD") == 0 && isTypeValue(peek().value)) {
@@ -390,7 +400,7 @@ void parseIf() {
     match("KEYWORD");
 
     if (!expectCondition()) {
-        if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+        if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
             parseBlock();
         } else {
             parseStatement();
@@ -398,11 +408,10 @@ void parseIf() {
         return;
     }
 
-    if (isKeyword("then")) match("NOISE_WORD");
+    if (isNoise("then")) match("NOISE_WORD");
 
-    if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+    if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
         parseBlock();
-        if (isKeyword("end")) match("NOISE_WORD");
     } else {
         parseStatement();
     }
@@ -413,26 +422,24 @@ void parseIf() {
         if (isKeyword("if")) {
             match("KEYWORD");
             if (!expectCondition()) {
-                if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+                if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
                     parseBlock();
                 } else {
                     parseStatement();
                 }
                 break;
             }
-            if (isKeyword("then")) match("NOISE_WORD");
+            if (isNoise("then")) match("NOISE_WORD");
 
-            if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+            if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
                 parseBlock();
-                if (isKeyword("end")) match("NOISE_WORD");
             } else {
                 parseStatement();
             }
         } else {
-            if (isKeyword("then")) match("NOISE_WORD");
-            if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+            if (isNoise("then")) match("NOISE_WORD");
+            if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
                 parseBlock();
-                if (isKeyword("end")) match("NOISE_WORD");
             } else {
                 parseStatement();
             }
@@ -453,8 +460,9 @@ void parseWhile() {
     match("KEYWORD");
 
     if (!expectCondition()) {
-        if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
-            parseBlock();
+        if (isNoise("do")) match("NOISE_WORD");
+        if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
+                parseBlock();
         } else {
             parseStatement();
         }
@@ -463,9 +471,9 @@ void parseWhile() {
 
 
 
-    if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+    if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin") || isNoise("do")) {
+        if (isNoise("do")) match("NOISE_WORD");
         parseBlock();
-        if (isKeyword("end")) match("NOISE_WORD");
     } else {
         parseStatement();
     }
@@ -574,11 +582,10 @@ void parseFor() {
     }
 
 
-    if (isKeyword("do")) match("NOISE_WORD");
+    if (isNoise("do")) match("NOISE_WORD");
 
-    if (strcmp(peek().type, "LEFT_BRACE") == 0 || isKeyword("begin")) {
+    if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
         parseBlock();
-        if (isKeyword("end")) match("NOISE_WORD");
     } else {
         parseStatement();
     }
