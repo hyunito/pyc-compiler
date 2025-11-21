@@ -65,9 +65,7 @@ int main() {
     int idx = 0;
 
     while ((c = fgetc(fp)) != EOF) {
-        int next = fgetc(fp);
-        if (next == -1) ungetc(c, fp);
-        printf("state = %d, character = %c, its num = %d\n", state, c, c);
+        //printf("state = %d, character = %c, its num = %d\n", state, c, c);
         switch (state) {
 
             //Starting state 0
@@ -115,13 +113,16 @@ int main() {
                 }
                 if (c == ' ' || c == '\t' || c == -1) {
                     break;
-                } else if (c == '\n' || c == 10) {
-                    lines+=1;
+                } else if (c == '\n') {
+                    printf("NEW_LINE(\\n)\n");
+                    fprintf(out, "NEW_LINE(\\n)\n", c);
                     break;
                 } else {
                     printf("The character or symbol \"%c\" is not yet registered.\n", c);
                     break;
                 }
+
+
             //State 1 is for small letters only this includes small letters
             //in Keywords, Reserved Words, Noise Words
             case 1:
@@ -203,8 +204,7 @@ int main() {
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-                    ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
 
@@ -221,8 +221,7 @@ int main() {
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
 
@@ -249,8 +248,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
 
@@ -267,8 +265,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 7:
@@ -284,8 +281,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
 
@@ -297,8 +293,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
 
@@ -320,8 +315,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 10:
@@ -332,8 +326,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 11:
@@ -344,8 +337,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 12:
@@ -361,8 +353,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 13:
@@ -373,8 +364,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 14:
@@ -385,8 +375,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 15:
@@ -397,8 +386,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 16:
@@ -409,8 +397,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 17:
@@ -421,8 +408,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 18:
@@ -434,8 +420,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 19:
@@ -446,8 +431,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 20:
@@ -458,8 +442,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 21:
@@ -476,8 +459,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 22:
@@ -488,8 +470,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 23:
@@ -501,8 +482,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 24:
@@ -514,8 +494,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 25:
@@ -526,8 +505,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 26:
@@ -538,8 +516,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 27:
@@ -550,8 +527,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 28:
@@ -562,8 +538,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 29:
@@ -574,8 +549,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 30:
@@ -586,8 +560,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 31:
@@ -598,8 +571,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 32:
@@ -610,8 +582,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 33:
@@ -622,8 +593,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 34:
@@ -634,8 +604,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 35:
@@ -646,8 +615,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 36:
@@ -658,8 +626,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 37:
@@ -670,8 +637,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 38:
@@ -682,8 +648,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 39:
@@ -694,8 +659,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 40:
@@ -712,8 +676,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
 
@@ -726,8 +689,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 42:
@@ -738,8 +700,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 43:
@@ -750,8 +711,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 44:
@@ -762,8 +722,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 45:
@@ -775,8 +734,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 46:
@@ -787,8 +745,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 47:
@@ -799,8 +756,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 48:
@@ -811,8 +767,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 49:
@@ -827,17 +782,16 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 50:
-                next = fgetc(fp);
+                int next = fgetc(fp);
                 //printf("case50: next = \"%c\"\n", next);
                 if (next == ' ' || next == '\n' || next == '\t' || next == '(' || next == ';' || next == '{' || next == '}' || next == -1) {
                     buffer[idx] = '\0';
-                    printf("KEYWORD(%s) LINE %d\n", buffer, lines);
-                    fprintf(out, "KEYWORD(%s) LINE %d\n", buffer, lines);
+                    printf("KEYWORD(%s)\n", buffer);
+                    fprintf(out, "KEYWORD(%s)\n", buffer);
                     idx = 0;
                     state = 0;
                     exit = 0;
@@ -846,8 +800,7 @@ ungetc(c, fp); // identifier
                 } else {
 
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 51:
@@ -859,8 +812,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 52:
@@ -872,8 +824,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 53:
@@ -885,8 +836,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 54:
@@ -898,8 +848,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 55:
@@ -911,8 +860,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 56:
@@ -924,8 +872,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 57:
@@ -936,8 +883,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 58:
@@ -949,8 +895,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 59:
@@ -962,8 +907,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 60:
@@ -975,8 +919,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 61:
@@ -988,8 +931,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 62:
@@ -1001,8 +943,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 63:
@@ -1013,8 +954,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 64:
@@ -1025,8 +965,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 65:
@@ -1038,8 +977,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 66:
@@ -1050,8 +988,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 67:
@@ -1063,8 +1000,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 68:
@@ -1076,8 +1012,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 69:
@@ -1089,8 +1024,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 70:
@@ -1102,8 +1036,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 71:
@@ -1114,11 +1047,10 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
-            
+
             case 72:
                 //Keywords: continue
                 if (c == 'u') {
@@ -1127,8 +1059,7 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 73:
@@ -1140,16 +1071,16 @@ ungetc(c, fp); // identifier
                     break;
                 } else {
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 75:
                 next = fgetc(fp);
+                //printf("case75: next = \"%c\"\n", next);
                 if (next == ' ' || next == '\n' || next == '\t' || next == '(' || next == ';' || next == '{' || next == '}' || next == -1) {
                     buffer[idx] = '\0';
-                    printf("NOISE_WORD(%s) LINE %d\n", buffer, lines);
-                    fprintf(out, "NOISE_WORD(%s) LINE %d\n", buffer, lines);
+                    printf("NOISE_WORD(%s)\n", buffer);
+                    fprintf(out, "NOISE_WORD(%s)\n", buffer);
                     idx = 0;
                     state = 0;
                     exit = 0;
@@ -1158,8 +1089,7 @@ ungetc(c, fp); // identifier
                 } else {
 
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
+                    state = 110; // identifier
                     break;
                 }
             case 100:
@@ -1167,8 +1097,8 @@ ungetc(c, fp); // identifier
                 //printf("case75: next = \"%c\"\n", next);
                 if (next == ' ' || next == '\n' || next == '\t' || next == '(' || next == ';' || next == '{' || next == '}' || next == -1) {
                     buffer[idx] = '\0';
-                    printf("RESERVED_WORD(%s) LINE %d\n", buffer, lines);
-                    fprintf(out, "RESERVED_WORD(%s) LINE %d\n", buffer, lines);
+                    printf("RESERVED_WORD(%s)\n", buffer);
+                    fprintf(out, "RESERVED_WORD(%s)\n", buffer);
                     idx = 0;
                     state = 0;
                     exit = 0;
@@ -1177,23 +1107,7 @@ ungetc(c, fp); // identifier
                 } else {
 
                     buffer[idx++] = c;
-                    state = 110;
-ungetc(c, fp); // identifier
-                    break;
-                }
-            case 110:
-                next = fgetc(fp);
-                if (next == ' ' || next == '\n' || next == '\t' || next == ';' || next == -1) {
-                    buffer[idx] = '\0';
-                    printf("IDENTIFIER(%s) LINE %d\n", buffer, lines);
-                    fprintf(out, "IDENTIFIER(%s) LINE %d\n", buffer, lines);
-                    idx = 0;
-                    state = 0;
-                    exit = 0;
-                    ungetc(next, fp);
-                    break;
-                } else {
-                    buffer[idx++] = c;
+                    state = 110; // identifier
                     break;
                 }
 

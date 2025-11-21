@@ -1,0 +1,6 @@
+RESERVED_WORD(int)
+NEW_LINE(\n)
+RESERVED_WORD(bool)
+NEW_LINE(\n)
+KEYWORD(if)
+NOISE_WORD(begin)
