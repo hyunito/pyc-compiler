@@ -1,5 +1,23 @@
 #include <stdio.h>
-#include <ctype.h>
+
+char cap[] = {
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
+    'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
+};
+
+char sm[] = {
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+    'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
+};
+
+char symbols[] = {
+    '!', '#', '^', '*', '%', '&', '(', ')', '[', ']', '{', '}', '<', '>',
+    '+', '=', '-', '|', '/', ';', ':', '\'', '"', ',', '.', '_'
+};
+
+char digits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+int lensm = sizeof(sm) / sizeof(sm[0]);
+int lensymbols = sizeof(symbols) / sizeof(symbols[0]);
 
 int str_equal(const char *str1, const char *str2) {
     int i = 0;
@@ -12,31 +30,34 @@ int str_equal(const char *str1, const char *str2) {
     return (str1[i] == '\0' && str2[i] == '\0');
 }
 
+int isLetter(char letter1, char letter2[]) {
+    for (int i = 0; i < lensm; i++) {
+        if (letter1 == letter2[i]) {
+            return 1;
+        }
+        }
+    return 0;
+}
+int isDigit(char num) {
+    for (int i = 0; i < 10; i++) {
+        if (num == digits[i]) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int isSymbol(char symbol1) {
+    for (int i = 0; i < lensymbols; i++) {
+        if (symbol1 == symbols[i]) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int main() {
     char filename[] = "sample.pyclang";
-
-    char cap[] = {
-        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-        'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
-    };
-
-    char sm[] = {
-        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-        'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
-    };
-
-    char symbols[] = {
-        '!', '#', '^', '*', '%', '&', '(', ')', '[', ']', '{', '}', '<', '>',
-        '+', '=', '-', '|', '/', ';', ':', '\'', '"', ',', '.'
-    };
-
-    char digits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-
-    int lines = 1;
-
-    int lensm = sizeof(sm) / sizeof(sm[0]);
-    int lensymbols = sizeof(symbols) / sizeof(symbols[0]);
-    int lendigits = sizeof(digits) / sizeof(digits[0]);
 
     int len = 0;
     while (filename[len] != '\0') len++;
@@ -66,63 +87,37 @@ int main() {
 
     while ((c = fgetc(fp)) != EOF) {
 
-        //printf("DEBUG: state=%d, char='%c' (ASCII=%d), idx=%d\n", state, c, c, idx);
-        //printf("state = %d, character = %c, its num = %d\n", state, c, c);
+        //printf("DEBUG: state=%d, char='%c'(ASCII=%d), idx=%d\n", state, c, c, idx);
         switch (state) {
 
             //Starting state 0
             case 0:
-
-                for (int i = 0; i < lensm; i++) {
                     //Go to State 1 if small letters
-                    if (c == sm[i]) {
+                    if (isLetter(c, sm)) {
                         state = 1;
                         ungetc(c, fp);
                         exit = 1;
                         break;
-                    }
-                    //Go to State 2 if capital letters
-                    else if (c == cap[i]) {
+                    } else if (isLetter(c, cap)) {
+                        //Go to State 2 if capital letters
                         state = 2;
                         ungetc(c, fp);
                         exit = 1;
                         break;
-                    }
-                }
-
-
-                for (int i = 0; i < lendigits; i++) {
-                    //Go to State 3 if digits
-                    if (c == digits[i]) {
+                    } else if (isDigit(c)) {
+                        //Go to State 3 if digits
                         state = 3;
                         ungetc(c, fp);
                         exit = 1;
                         break;
-                    }
-                }
-
-                for (int i = 0; i < lensymbols; i++) {
-                    //Go to State 4 if symbols
-                    if (c == symbols[i]) {
+                    } else if (isSymbol(c)) {
+                        //Go to State 4 if symbols
                         state = 4;
                         ungetc(c, fp);
                         exit = 1;
                         break;
                     }
-                }
-                if (c == '_') {
-                    state = 1;  // Go to identifier state to trigger error
-                    ungetc(c, fp);
-                    exit = 1;
-                    break;
-                }
-                // Check for invalid special symbols that cannot appear anywhere
-                if (c == '@' || c == '$' || c == '`' || c == '~' || c == '?') {
-                    buffer[idx++] = c;
-                    state = 113; // Go to error state
-                    exit = 1;
-                    break;
-                }
+
                 if (exit == 1) {
                     break;
                 }
@@ -133,8 +128,8 @@ int main() {
                     fprintf(out, "NEW_LINE(\\n)\n");
                     break;
                 } else {
-                    printf("ERROR(%c)\n", c);
-                    fprintf(out, "ERROR(%c)\n", c);
+                    buffer[idx++] = c;
+                    state = 113;
                     break;
                 }
 
@@ -142,12 +137,7 @@ int main() {
             //State 1 is for small letters only this includes small letters
             //in Keywords, Reserved Words, Noise Words
             case 1:
-                if (c == '_') {
-                    // ERROR: Identifiers cannot start with underscore
-                    buffer[idx++] = c;
-                    state = 113; // Go to error state
-                    break;
-                } else if (c == 'i') {
+                if (c == 'i') {
                     //Keywords: if, input,
                     //Reserve Words: int
                     buffer[idx++] = c;
@@ -255,7 +245,7 @@ int main() {
 
             case 3:
                 //FOR NUMBERS
-                if (isdigit(c) || c == '.') {
+                if (isDigit(c) || c == '.') {
                     buffer[idx++] = c;
                 } else {
                     // Check if followed by letter or underscore (invalid identifier)
@@ -266,7 +256,7 @@ int main() {
                             break;
                         }
                     }
-                    
+
                     if (is_letter || c == '_') {
                         // ERROR: Identifier cannot start with a digit
                         buffer[idx++] = c;
@@ -458,9 +448,8 @@ int main() {
                 }
                 // For unrecognized symbols
                 else {
-                    printf("ERROR(%c)\n", c);
-                    fprintf(out, "ERROR(%c)\n", c);
-                    state = 0;
+                    buffer[idx++] = c;
+                    state = 113;
                     break;
                 }
 
@@ -1412,25 +1401,19 @@ int main() {
                 int is_letter = 0;
                 int is_digit = 0;
                 int is_underscore = 0;
-                
-                for (int i = 0; i < lensm; i++) {
-                    if (c == sm[i] || c == cap[i]) {
+
+                    if (isLetter(c, sm) || isLetter(c, cap)) {
                         is_letter = 1;
-                        break;
                     }
-                }
-                
-                for (int i = 0; i < lendigits; i++) {
-                    if (c == digits[i]) {
+
+                    if (isDigit(c)) {
                         is_digit = 1;
-                        break;
                     }
-                }
-                
+
                 if (c == '_') {
                     is_underscore = 1;
                 }
-                
+
                 if (is_letter || is_digit || is_underscore) {
                     buffer[idx++] = c;
                     state = 110; // Stay in identifier state
@@ -1446,7 +1429,7 @@ int main() {
                     ungetc(c, fp);
                     break;
                 }
-                
+
             case 111:
                 // Single-line comment state
                 if (c == '\n') {
@@ -1497,19 +1480,14 @@ int main() {
                 // Error state
                 {
                     int is_valid = 0;
-                    
-                    for (int i = 0; i < lensm; i++) {
-                        if (c == sm[i] || c == cap[i]) {
+
+
+                        if (isLetter(c, sm) || isLetter(c, cap)) {
                             is_valid = 1;
-                            break;
                         }
-                    }
-                    for (int i = 0; i < lendigits && !is_valid; i++) {
-                        if (c == digits[i]) {
+                        if (isDigit(c) && !is_valid) {
                             is_valid = 1;
-                            break;
                         }
-                    }
                     if (c == '_') is_valid = 1;
                     
                     if (is_valid) {
