@@ -1,5 +1,5 @@
 #include <stdio.h>
-
+#include <ctype.h>
 
 int str_equal(const char *str1, const char *str2) {
     int i = 0;
@@ -26,8 +26,8 @@ int main() {
     };
 
     char symbols[] = {
-        '`', '~', '@', '!', '$', '#', '^', '*', '%', '&', '(', ')', '[', ']', '{', '}', '<', '>',
-        '+', '=', '_', '-', '|', '/', '\\', ';', ':', '\'', '"', ',', '.'
+        '!', '#', '^', '*', '%', '&', '(', ')', '[', ']', '{', '}', '<', '>',
+        '+', '=', '-', '|', '/', ';', ':', '\'', '"', ',', '.'
     };
 
     char digits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
@@ -65,6 +65,8 @@ int main() {
     int idx = 0;
 
     while ((c = fgetc(fp)) != EOF) {
+
+        //printf("DEBUG: state=%d, char='%c' (ASCII=%d), idx=%d\n", state, c, c, idx);
         //printf("state = %d, character = %c, its num = %d\n", state, c, c);
         switch (state) {
 
@@ -108,6 +110,19 @@ int main() {
                         break;
                     }
                 }
+                if (c == '_') {
+                    state = 1;  // Go to identifier state to trigger error
+                    ungetc(c, fp);
+                    exit = 1;
+                    break;
+                }
+                // Check for invalid special symbols that cannot appear anywhere
+                if (c == '@' || c == '$' || c == '`' || c == '~' || c == '?') {
+                    buffer[idx++] = c;
+                    state = 113; // Go to error state
+                    exit = 1;
+                    break;
+                }
                 if (exit == 1) {
                     break;
                 }
@@ -115,10 +130,11 @@ int main() {
                     break;
                 } else if (c == '\n') {
                     printf("NEW_LINE(\\n)\n");
-                    fprintf(out, "NEW_LINE(\\n)\n", c);
+                    fprintf(out, "NEW_LINE(\\n)\n");
                     break;
                 } else {
-                    printf("The character or symbol \"%c\" is not yet registered.\n", c);
+                    printf("ERROR(%c)\n", c);
+                    fprintf(out, "ERROR(%c)\n", c);
                     break;
                 }
 
@@ -126,7 +142,12 @@ int main() {
             //State 1 is for small letters only this includes small letters
             //in Keywords, Reserved Words, Noise Words
             case 1:
-                if (c == 'i') {
+                if (c == '_') {
+                    // ERROR: Identifiers cannot start with underscore
+                    buffer[idx++] = c;
+                    state = 113; // Go to error state
+                    break;
+                } else if (c == 'i') {
                     //Keywords: if, input,
                     //Reserve Words: int
                     buffer[idx++] = c;
@@ -163,8 +184,14 @@ int main() {
                     break;
                 } else if (c == 'o') {
                     //Keywords: output
+                    //Logical: or
                     buffer[idx++] = c;
                     state = 11;
+                    break;
+                } else if (c == 'a') {
+                    //Logical: and
+                    buffer[idx++] = c;
+                    state = 76;
                     break;
                 } else if (c == 'c') {
                     //Keywords: const, continue
@@ -189,6 +216,7 @@ int main() {
                     break;
                 } else if (c == 'n') {
                     //Reserve Words: null
+                    //Logical: not
                     buffer[idx++] = c;
                     state = 16;
                     break;
@@ -226,12 +254,215 @@ int main() {
                 }
 
             case 3:
-                //FOR DIGITS
+                //FOR NUMBERS
+                if (isdigit(c) || c == '.') {
+                    buffer[idx++] = c;
+                } else {
+                    // Check if followed by letter or underscore (invalid identifier)
+                    int is_letter = 0;
+                    for (int i = 0; i < lensm; i++) {
+                        if (c == sm[i] || c == cap[i]) {
+                            is_letter = 1;
+                            break;
+                        }
+                    }
+                    
+                    if (is_letter || c == '_') {
+                        // ERROR: Identifier cannot start with a digit
+                        buffer[idx++] = c;
+                        state = 113; // Go to error state
+                        break;
+                    } else {
+                        // Valid number termination
+                        buffer[idx] = '\0';
+                        printf("NUMBER(%s)\n", buffer);
+                        fprintf(out, "NUMBER(%s)\n", buffer);
+                        idx = 0;
+                        state = 0;
+                        ungetc(c, fp);
+                        break;
+                    }
+                }
                 break;
 
             case 4:
-                //FOR SYMBOLS
-                break;
+                //FOR SYMBOLS, DELIMETERS AND BRACKETS
+                exit = 0;
+                if (c == '*') {
+                    int next = fgetc(fp);
+                    if (next == '*') {
+                        printf("ARITH_OP(**)\n");
+                        fprintf(out, "ARITH_OP(**)\n");
+                    } else {
+                        printf("ARITH_OP(*)\n");
+                        fprintf(out, "ARITH_OP(*)\n");
+                        ungetc(next, fp);
+                    }
+                    state = 0;
+                    break;
+                }
+                else if (c == '/') {
+                    int next = fgetc(fp);
+                    if (next == '/') {
+                        // Floor division operator
+                        printf("ARITH_OP(//)\n");
+                        fprintf(out, "ARITH_OP(//)\n");
+                        state = 0;
+                        break;
+                    } else if (next == '*') {
+                        // Multi-line comment start
+                        printf("COMMENT_START(/*)\n");
+                        fprintf(out, "COMMENT_START(/*)\n");
+                        idx = 0;
+                        state = 112; // multi-line comment state
+                        break;
+                    } else {
+                        printf("ARITH_OP(/)\n");
+                        fprintf(out, "ARITH_OP(/)\n");
+                        ungetc(next, fp);
+                        state = 0;
+                        break;
+                    }
+                }
+                else if (c == '+') {
+                    int next = fgetc(fp);
+                    if (next == '+') {
+                        printf("INCREMENT(++)\n");
+                        fprintf(out, "INCREMENT(++)\n");
+                    } else {
+                        printf("ARITH_OP(+)\n");
+                        fprintf(out, "ARITH_OP(+)\n");
+                        ungetc(next, fp);
+                    }
+                    state = 0;
+                    break;
+                }
+                else if (c == '-') {
+                    int next = fgetc(fp);
+                    if (next == '-') {
+                        printf("DECREMENT(--)\n");
+                        fprintf(out, "DECREMENT(--)\n");
+                    } else {
+                        printf("ARITH_OP(-)\n");
+                        fprintf(out, "ARITH_OP(-)\n");
+                        ungetc(next, fp);
+                    }
+                    state = 0;
+                    break;
+                }
+                else if (c == '%') {
+                    printf("ARITH_OP(%%)\n");
+                    fprintf(out, "ARITH_OP(%%)\n");
+                    state = 0;
+                    break;
+                }
+                else if (c == '=') {
+                    printf("ASSIGN_OP(=)\n");
+                    fprintf(out, "ASSIGN_OP(=)\n");
+                    state = 0;
+                    break;
+                }
+                else if (c == '>') {
+                    int next = fgetc(fp);
+                    if (next == '=') {
+                        printf("REL_OP(>=)\n");
+                        fprintf(out, "REL_OP(>=)\n");
+                    } else {
+                        printf("REL_OP(>)\n");
+                        fprintf(out, "REL_OP(>)\n");
+                        ungetc(next, fp);
+                    }
+                    state = 0;
+                    break;
+                }
+                else if (c == '<') {
+                    int next = fgetc(fp);
+                    if (next == '=') {
+                        printf("REL_OP(<=)\n");
+                        fprintf(out, "REL_OP(<=)\n");
+                    } else {
+                        printf("REL_OP(<)\n");
+                        fprintf(out, "REL_OP(<)\n");
+                        ungetc(next, fp);
+                    }
+                    state = 0;
+                    break;
+                }
+                else if (c == '!') {
+                    int next = fgetc(fp);
+                    if (next == '=') {
+                        printf("REL_OP(!=)\n");
+                        fprintf(out, "REL_OP(!=)\n");
+                    } else {
+                        printf("ERROR(!)\n");
+                        fprintf(out, "ERROR(!)\n");
+                        ungetc(next, fp);
+                    }
+                    state = 0;
+                    break;
+                }
+                else if (c == '(') {
+                    printf("LEFT_PAREN(()\n");
+                    fprintf(out, "LEFT_PAREN(()\n");
+                    state = 0;
+                    break;
+                }
+                else if (c == ')') {
+                    printf("RIGHT_PAREN())\n");
+                    fprintf(out, "RIGHT_PAREN())\n");
+                    state = 0;
+                    break;
+                }
+                else if (c == '{') {
+                    printf("LEFT_BRACE({)\n");
+                    fprintf(out, "LEFT_BRACE({)\n");
+                    state = 0;
+                    break;
+                }
+                else if (c == '}') {
+                    printf("RIGHT_BRACE(})\n");
+                    fprintf(out, "RIGHT_BRACE(})\n");
+                    state = 0;
+                    break;
+                }
+                else if (c == '[') {
+                    printf("LEFT_BRACKET([)\n");
+                    fprintf(out, "LEFT_BRACKET([)\n");
+                    state = 0;
+                    break;
+                }
+                else if (c == ']') {
+                    printf("RIGHT_BRACKET(])\n");
+                    fprintf(out, "RIGHT_BRACKET(])\n");
+                    state = 0;
+                    break;
+                }
+                else if (c == ';') {
+                    printf("SEMICOLON(;)\n");
+                    fprintf(out, "SEMICOLON(;)\n");
+                    state = 0;
+                    break;
+                }
+                else if (c == ',') {
+                    printf("COMMA(,)\n");
+                    fprintf(out, "COMMA(,)\n");
+                    state = 0;
+                    break;
+                }
+                else if (c == '#') {
+                    printf("COMMENT(#)\n");
+                    fprintf(out, "COMMENT(#)\n");
+                    idx = 0;
+                    state = 111; // single-line comment state
+                    break;
+                }
+                // For unrecognized symbols
+                else {
+                    printf("ERROR(%c)\n", c);
+                    fprintf(out, "ERROR(%c)\n", c);
+                    state = 0;
+                    break;
+                }
 
             case 5:
                 //Keywords: if, input,
@@ -331,9 +562,15 @@ int main() {
                 }
             case 11:
                 //Keyword: output
+                //Logical: or
                 if (c == 'u') {
                     buffer[idx++] = c;
                     state = 31;
+                    break;
+                } else if (c == 'r') {
+                    buffer[idx++] = c;
+                    state = 74; // logical operator final state
+                    ungetc(c, fp);
                     break;
                 } else {
                     buffer[idx++] = c;
@@ -391,9 +628,14 @@ int main() {
                 }
             case 16:
                 //Reserve Words: null
+                //Logical: not
                 if (c == 'u') {
                     buffer[idx++] = c;
                     state = 36;
+                    break;
+                } else if (c == 'o') {
+                    buffer[idx++] = c;
+                    state = 78;
                     break;
                 } else {
                     buffer[idx++] = c;
@@ -1074,6 +1316,23 @@ int main() {
                     state = 110; // identifier
                     break;
                 }
+            case 74:
+                // Final state for logical operators
+                next = fgetc(fp);
+                if (next == ' ' || next == '\n' || next == '\t' || next == '(' || next == ';' || next == '{' || next == '}' || next == -1) {
+                    buffer[idx] = '\0';
+                    printf("LOGICAL(%s)\n", buffer);
+                    fprintf(out, "LOGICAL(%s)\n", buffer);
+                    idx = 0;
+                    state = 0;
+                    exit = 0;
+                    ungetc(next, fp);
+                    break;
+                } else {
+                    buffer[idx++] = c;
+                    state = 110; // identifier
+                    break;
+                }
             case 75:
                 next = fgetc(fp);
                 //printf("case75: next = \"%c\"\n", next);
@@ -1092,6 +1351,44 @@ int main() {
                     state = 110; // identifier
                     break;
                 }
+            case 76:
+                //Logical: and
+                if (c == 'n') {
+                    buffer[idx++] = c;
+                    state = 79;
+                    break;
+                } else {
+                    buffer[idx++] = c;
+                    state = 110; // identifier
+                    break;
+                }
+
+            case 78:
+                //Logical: not
+                if (c == 't') {
+                    buffer[idx++] = c;
+                    state = 74; // logical operator final state
+                    ungetc(c, fp);
+                    break;
+                } else {
+                    buffer[idx++] = c;
+                    state = 110; // identifier
+                    break;
+                }
+
+            case 79:
+                //Logical: and
+                if (c == 'd') {
+                    buffer[idx++] = c;
+                    state = 74; // logical operator final state
+                    ungetc(c, fp);
+                    break;
+                } else {
+                    buffer[idx++] = c;
+                    state = 110; // identifier
+                    break;
+                }
+
             case 100:
                 next = fgetc(fp);
                 //printf("case75: next = \"%c\"\n", next);
@@ -1111,10 +1408,158 @@ int main() {
                     break;
                 }
 
+            case 110:
+                int is_letter = 0;
+                int is_digit = 0;
+                int is_underscore = 0;
+                
+                for (int i = 0; i < lensm; i++) {
+                    if (c == sm[i] || c == cap[i]) {
+                        is_letter = 1;
+                        break;
+                    }
+                }
+                
+                for (int i = 0; i < lendigits; i++) {
+                    if (c == digits[i]) {
+                        is_digit = 1;
+                        break;
+                    }
+                }
+                
+                if (c == '_') {
+                    is_underscore = 1;
+                }
+                
+                if (is_letter || is_digit || is_underscore) {
+                    buffer[idx++] = c;
+                    state = 110; // Stay in identifier state
+                    break;
+                } else {
+                    // End of identifier - terminate and output
+                    buffer[idx] = '\0';
+                    printf("IDENTIFIER(%s)\n", buffer);
+                    fprintf(out, "IDENTIFIER(%s)\n", buffer);
+                    idx = 0;
+                    state = 0;
+                    exit = 0;
+                    ungetc(c, fp);
+                    break;
+                }
+                
+            case 111:
+                // Single-line comment state
+                if (c == '\n') {
+                    buffer[idx] = '\0';
+                    if (idx > 0) {
+                        printf("COM_STR(%s)\n", buffer);
+                        fprintf(out, "COM_STR(%s)\n", buffer);
+                    }
+                    printf("NEW_LINE(\\n)\n");
+                    fprintf(out, "NEW_LINE(\\n)\n");
+                    idx = 0;
+                    state = 0;
+                    break;
+                } else {
+                    buffer[idx++] = c;
+                    state = 111;
+                    break;
+                }
+
+            case 112:
+                // Multi-line comment state
+                if (c == '*') {
+                    int next = fgetc(fp);
+                    if (next == '/') {
+                        buffer[idx] = '\0';
+                        if (idx > 0) {
+                            printf("COM_STR(%s)\n", buffer);
+                            fprintf(out, "COM_STR(%s)\n", buffer);
+                        }
+                        printf("COMMENT_END(*/)\n");
+                        fprintf(out, "COMMENT_END(*/)\n");
+                        idx = 0;
+                        state = 0;
+                        break;
+                    } else {
+                        buffer[idx++] = c;
+                        ungetc(next, fp);
+                        state = 112;
+                        break;
+                    }
+                } else {
+                    buffer[idx++] = c;
+                    state = 112;
+                    break;
+                }
+
+            case 113:
+                // Error state
+                {
+                    int is_valid = 0;
+                    
+                    for (int i = 0; i < lensm; i++) {
+                        if (c == sm[i] || c == cap[i]) {
+                            is_valid = 1;
+                            break;
+                        }
+                    }
+                    for (int i = 0; i < lendigits && !is_valid; i++) {
+                        if (c == digits[i]) {
+                            is_valid = 1;
+                            break;
+                        }
+                    }
+                    if (c == '_') is_valid = 1;
+                    
+                    if (is_valid) {
+                        buffer[idx++] = c;
+                        state = 113;
+                        break;
+                    } else {
+                        buffer[idx] = '\0';
+                        printf("ERROR(%s)\n", buffer);
+                        fprintf(out, "ERROR(%s)\n", buffer);
+                        idx = 0;
+                        state = 0;
+                        ungetc(c, fp);
+                        break;
+                    }
+                }
+
             default:
                 break;
         }
     }
+
+if (idx > 0) {
+    buffer[idx] = '\0';
+    if (state == 110) {
+        printf("IDENTIFIER(%s)\n", buffer);
+        fprintf(out, "IDENTIFIER(%s)\n", buffer);
+    } else if (state == 50) {
+        printf("KEYWORD(%s)\n", buffer);
+        fprintf(out, "KEYWORD(%s)\n", buffer);
+    } else if (state == 100) {
+        printf("RESERVED_WORD(%s)\n", buffer);
+        fprintf(out, "RESERVED_WORD(%s)\n", buffer);
+    } else if (state == 75) {
+        printf("NOISE_WORD(%s)\n", buffer);
+        fprintf(out, "NOISE_WORD(%s)\n", buffer);
+    } else if (state == 74) {
+        printf("LOGICAL(%s)\n", buffer);
+        fprintf(out, "LOGICAL(%s)\n", buffer);
+    } else if (state == 3) {
+        printf("NUMBER(%s)\n", buffer);
+        fprintf(out, "NUMBER(%s)\n", buffer);
+    } else if (state == 111) {
+        printf("COM_STR(%s)\n", buffer);
+        fprintf(out, "COM_STR(%s)\n", buffer);
+    } else if (state == 113) {
+        printf("ERROR(%s)\n", buffer);
+        fprintf(out, "ERROR(%s)\n", buffer);
+    }
+}
 
     fclose(fp);
     fclose(out);
