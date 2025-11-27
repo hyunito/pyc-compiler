@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_TOKENS 9999
+#define MAX_TOKENS 999999
 #define MAX_IDENTIFIERS 1000
-#define LOGGING 0         // 1 to enable, 0 to disable
+#define LOGGING 0       // 1 to enable, 0 to disable
 #define DEBUG 0
 
 typedef struct {
@@ -20,6 +20,7 @@ Token tokens[MAX_TOKENS];
 int tokenCount = 0;
 int current = 0;
 int errorCount = 0;
+int lines = 1;
 
 Identifier symbolTable[MAX_IDENTIFIERS];
 int symbolCount = 0;
@@ -65,14 +66,27 @@ void debug_state(const char* action) {
 }
 
 void advance() {
-    if (DEBUG) {
+    if(DEBUG){
         if (!isAtEnd())
             printf("[DEBUG] advance(): Moving from %s('%s') ", tokens[current].type, tokens[current].value);
         else
             printf("[DEBUG] advance(): At EOF\n");
     }
+    if(isAtEnd()) return;
+
+    while (!isAtEnd() && strcmp(tokens[current].type, "NEW_LINE") == 0) {
+        lines++;
+        current++;
+    }
+
     if (!isAtEnd()) current++;
-    if (DEBUG) {
+
+    while (!isAtEnd() && strcmp(tokens[current].type, "NEW_LINE") == 0) {
+        lines++;
+        current++;
+    }
+
+    if (DEBUG){
         if (!isAtEnd())
             printf("to %s('%s')\n", tokens[current].type, tokens[current].value);
         else
@@ -124,7 +138,7 @@ int match(const char* expected) {
         return 1;
     }
 
-    printf("Syntax Error: Expected %s but got %s (%s)\n",
+    printf("Syntax Error at Line %d: Expected %s but got %s (%s)\n", lines,
            expected, peek().type, peek().value);
 
     errorCount++;
@@ -321,9 +335,11 @@ void parseStatement() {
         parseAssignment();
         return;
     }
+    if (strcmp(peek().type, "NEW_LINE") == 0) {
+        advance();
+    }
 
-
-    printf("Syntax Error: Unknown statement starting with %s (%s)\n", peek().type, peek().value);
+    printf("Syntax Error at Line %d: Unknown statement starting with %s (%s)\n",lines, peek().type, peek().value);
     errorCount++;
     recover();
 }
@@ -332,7 +348,7 @@ void parseDeclaration() {
     match("RESERVED_WORD");
 
     if (strcmp(peek().type, "IDENTIFIER") != 0) {
-        printf("Syntax Error: Expected identifier in declaration.\n");
+        printf("Syntax Error at Line %d: Expected identifier in declaration.\n", lines);
         errorCount++;
         recover();
         return;
@@ -362,7 +378,7 @@ void parseDeclaration() {
 
 int expectCondition() {
     if (strcmp(peek().type, "LEFT_PAREN") != 0) {
-        printf("Syntax Error: Expected '(' to start condition but got %s (%s)\n",
+        printf("Syntax Error at Line %d: Expected '(' to start condition but got %s (%s)\n", lines,
                peek().type, peek().value);
         errorCount++;
         recover();
@@ -371,7 +387,7 @@ int expectCondition() {
     match("LEFT_PAREN");
 
     if (isAtEnd() || strcmp(peek().type, "RIGHT_PAREN") == 0) {
-        printf("Syntax Error: Expected condition expression inside parentheses.\n");
+        printf("Syntax Error at Line %d: Expected condition expression inside parentheses.\n", lines);
         errorCount++;
         recover();
         return 0;
@@ -380,7 +396,7 @@ int expectCondition() {
     parseExpression();
 
     if (strcmp(peek().type, "RIGHT_PAREN") != 0) {
-        printf("Syntax Error: Expected ')' to close condition but got %s (%s)\n",
+        printf("Syntax Error at Line %d: Expected ')' to close condition but got %s (%s)\n", lines,
                peek().type, peek().value);
         errorCount++;
         recover();
@@ -489,7 +505,7 @@ void parseFor() {
     match("KEYWORD");
 
     if (strcmp(peek().type, "LEFT_PAREN") != 0) {
-        printf("Syntax Error: Expected '(' after for but got %s (%s)\n", peek().type, peek().value);
+        printf("Syntax Error at Line %d: Expected '(' after for but got %s (%s)\n", lines, peek().type, peek().value);
         errorCount++;
         recover();
     } else {
@@ -513,7 +529,7 @@ void parseFor() {
                 match("SEMICOLON");
                 initConsumedSemicolon = 1;
             } else {
-                printf("Syntax Error: Expected ';' after for-initialization but got %s (%s)\n",
+                printf("Syntax Error at Line %d: Expected ';' after for-initialization but got %s (%s)\n", lines,
                        peek().type, peek().value);
                 errorCount++;
                 recover();
@@ -525,7 +541,7 @@ void parseFor() {
         if (strcmp(peek().type, "SEMICOLON") == 0) {
             match("SEMICOLON");
         } else {
-            printf("Syntax Error: Expected ';' after for-initialization but got %s (%s)\n",
+            printf("Syntax Error at Line %d: Expected ';' after for-initialization but got %s (%s)\n", lines,
                    peek().type, peek().value);
             errorCount++;
             recover();
@@ -539,7 +555,7 @@ void parseFor() {
         if (strcmp(peek().type, "SEMICOLON") == 0) {
             match("SEMICOLON");
         } else {
-            printf("Syntax Error: Expected ';' after for-condition but got %s (%s)\n",
+            printf("Syntax Error at Line %d: Expected ';' after for-condition but got %s (%s)\n", lines,
                    peek().type, peek().value);
             errorCount++;
             recover();
@@ -575,7 +591,7 @@ void parseFor() {
     if (strcmp(peek().type, "RIGHT_PAREN") == 0) {
         match("RIGHT_PAREN");
     } else {
-        printf("Syntax Error: Expected ')' to close for loop header but got %s (%s)\n",
+        printf("Syntax Error at Line %d: Expected ')' to close for loop header but got %s (%s)\n", lines,
                peek().type, peek().value);
         errorCount++;
         recover();
@@ -593,7 +609,7 @@ void parseFor() {
 
 void parseAssignment() {
     if (strcmp(peek().type, "IDENTIFIER") != 0) {
-        printf("Syntax Error: Assignment must start with identifier.\n");
+        printf("Syntax Error at Line %d: Assignment must start with identifier.\n", lines);
         errorCount++;
         recover();
         return;
@@ -651,7 +667,7 @@ void parseArrayAssignment() {
 
 void parseInputStatement() {
     if (strcmp(peek().type, "IDENTIFIER") != 0) {
-        printf("Syntax Error: input assignment must start with identifier.\n");
+        printf("Syntax Error at Line %d: input assignment must start with identifier.\n", lines);
         errorCount++;
         recover();
         return;
@@ -706,7 +722,7 @@ void parseFunctionCall() {
 void parseFunctionDef() {
     match("RESERVED_WORD");
     if (strcmp(peek().type, "IDENTIFIER") != 0) {
-        printf("Syntax Error: Expected function name.\n");
+        printf("Syntax Error at Line %d: Expected function name.\n", lines);
         errorCount++;
         recover();
         return;
@@ -722,14 +738,14 @@ void parseFunctionDef() {
     if (!(strcmp(peek().type, "RIGHT_PAREN") == 0)) {
         while (1) {
             if (strcmp(peek().type, "RESERVED_WORD") != 0 || !isTypeValue(peek().value)) {
-                printf("Syntax Error: Expected type in parameter list.\n");
+                printf("Syntax Error at Line %d: Expected type in parameter list.\n", lines);
                 errorCount++;
                 recover();
                 return;
             }
             match("RESERVED_WORD");
             if (strcmp(peek().type, "IDENTIFIER") != 0) {
-                printf("Syntax Error: Expected parameter name.\n");
+                printf("Syntax Error at Line %d: Expected parameter name.\n", lines);
                 errorCount++;
                 recover();
                 return;
@@ -829,7 +845,7 @@ void parseFactor() {
             parseFunctionCall();
         } else {
             if (!isIdentifierDeclared(peek().value)) {
-                printf("Semantic Error: Identifier '%s' used before declaration\n", peek().value);
+                printf("Syntax Error at Line %d: Identifier '%s' is not declared\n", lines, peek().value);
                 errorCount++;
             }
             match("IDENTIFIER");
@@ -838,7 +854,7 @@ void parseFactor() {
         match("LEFT_PAREN");
         parseExpression();
         if (strcmp(peek().type, "RIGHT_PAREN") != 0) {
-            printf("Syntax Error: Missing closing parenthesis\n");
+            printf("Syntax Error at Line %d: Missing closing parenthesis\n", lines);
             errorCount++;
             recover();
             return;
@@ -849,7 +865,7 @@ void parseFactor() {
 
         advance();
     } else {
-        printf("Syntax Error: Missing operand - Expected NUMBER, IDENTIFIER, STRING, or '(' but got %s (%s)\n",
+        printf("Syntax Error at Line %d: Missing operand - Expected NUMBER, IDENTIFIER, STRING, or '(' but got %s (%s)\n", lines,
                peek().type, peek().value);
         errorCount++;
         recover();
@@ -884,7 +900,7 @@ int main() {
         }
         strncpy(tokens[tokenCount].type, line, typeLength);
         tokens[tokenCount].type[typeLength] = '\0';
-        if (strcmp(tokens[tokenCount].type, "COMMENT") == 0 || strcmp(tokens[tokenCount].type, "COM_STR") == 0 || strcmp(tokens[tokenCount].type, "COMMENT_END") == 0) {
+        if (strcmp(tokens[tokenCount].type, "COMMENT_START") == 0 || strcmp(tokens[tokenCount].type, "COMMENT") == 0 || strcmp(tokens[tokenCount].type, "COM_STR") == 0 || strcmp(tokens[tokenCount].type, "COMMENT_END") == 0) {
             continue;
         }
         if (!open || !close || close < open) {
@@ -907,6 +923,14 @@ int main() {
     }
 
     fclose(fp);
+
+    int i = 0;
+    while (i < tokenCount && strcmp(tokens[i].type, "NEW_LINE") == 0) {
+        printf("TESTING TOKEN COUNT\n");
+        lines++;
+        i++;
+    }
+    current = i;
 
     parseProgram();
 
