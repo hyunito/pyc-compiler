@@ -199,7 +199,10 @@ int main() {
                 else { printf("ARITH_OP(*)\n"); fprintf(out, "ARITH_OP(*)\n"); ungetc(next, fp); }
             }
             else if (c == '%') { printf("ARITH_OP(%%)\n"); fprintf(out, "ARITH_OP(%%)\n"); }
-            else if (isspace(c)) {}
+            else if (c == '\n') {
+                printf("NEW_LINE(\\n)\n");
+                fprintf(out, "NEW_LINE(\\n)\n");
+            } else if (isspace(c)) {}
             else if (c == '"') { state = 3; }
             else if (c == '\'') { state = 6; }
             else {
