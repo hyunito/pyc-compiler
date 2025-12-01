@@ -1,0 +1,6 @@
+# Compiled executables
+*.exe
+
+# Generated files
+Symbol_Table.txt
+Symbol_Table_Output.txt
