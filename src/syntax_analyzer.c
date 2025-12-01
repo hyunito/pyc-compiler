@@ -329,6 +329,9 @@ void parseStatement() {
 
     if (isNoise("begin")) {
         match("NOISE_WORD");
+        if (strcmp(peek().type, "SEMICOLON") == 0) {
+            match("SEMICOLON");
+        }
         return;
     }
     if (isNoise("end")) {
@@ -1071,6 +1074,8 @@ int main() {
             fprintf(symOut, "%s\n", symbolTable[i].name);
         }
         fclose(symOut);
+    } else {
+        printf("Warning: Could not create Symbol_Table_Output.txt\n");
     }
 
     return 0;
