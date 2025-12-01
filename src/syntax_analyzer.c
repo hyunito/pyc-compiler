@@ -543,6 +543,7 @@ void parseOutput() {
 }
 
 void parseFunctionCall() {
+    /* Function call: id(args) */
     match("IDENTIFIER");
     match("LEFT_PAREN");
     if (strcmp(peek().type, "RIGHT_PAREN") != 0) {
