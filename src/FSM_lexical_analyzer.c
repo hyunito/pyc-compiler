@@ -12,7 +12,7 @@ char sm[] = {
 
 char symbols[] = {
     '!', '#', '^', '*', '%', '&', '(', ')', '[', ']', '{', '}', '<', '>',
-    '+', '=', '-', '|', '/', ';', ':', '\'', '"', ',', '.', '_'
+    '+', '=', '-', '|', '/', ';', ':', '\'', '"', ',', '.', '_', '?'
 };
 
 char digits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
@@ -57,7 +57,7 @@ int isSymbol(char symbol1) {
 }
 
 int main() {
-    char filename[] = "sample.pyclang";
+    char filename[] = "full_input.pyclang";
 
     int len = 0;
     while (filename[len] != '\0') len++;
@@ -87,52 +87,48 @@ int main() {
 
     while ((c = fgetc(fp)) != EOF) {
 
-        //printf("DEBUG: state=%d, char='%c'(ASCII=%d), idx=%d\n", state, c, c, idx);
+        //printf("DEBUG: state = %d, char = '%c'(ASCII = %d), idx = %d\n", state, c, c, idx);
         switch (state) {
 
             //Starting state 0
             case 0:
-                    //Go to State 1 if small letters
-                    if (isLetter(c, sm)) {
-                        state = 1;
-                        ungetc(c, fp);
-                        exit = 1;
-                        break;
-                    } else if (isLetter(c, cap)) {
-                        //Go to State 2 if capital letters
-                        state = 2;
-                        ungetc(c, fp);
-                        exit = 1;
-                        break;
-                    } else if (isDigit(c)) {
-                        //Go to State 3 if digits
-                        state = 3;
-                        ungetc(c, fp);
-                        exit = 1;
-                        break;
-                    } else if (isSymbol(c)) {
-                        //Go to State 4 if symbols
-                        state = 4;
-                        ungetc(c, fp);
-                        exit = 1;
-                        break;
-                    }
-
-                if (exit == 1) {
-                    break;
-                }
-                if (c == ' ' || c == '\t' || c == -1) {
+                // Skip all whitespace except newlines
+                if (c == ' ' || c == '\t') {
                     break;
                 } else if (c == '\n') {
                     printf("NEW_LINE(\\n)\n");
                     fprintf(out, "NEW_LINE(\\n)\n");
                     break;
+                } else if (c == EOF || c == -1) {
+                    break;
+                }
+                
+                //Go to State 1 if small letters
+                if (isLetter(c, sm)) {
+                    state = 1;
+                    ungetc(c, fp);
+                    break;
+                } else if (isLetter(c, cap)) {
+                    //Go to State 2 if capital letters
+                    state = 2;
+                    ungetc(c, fp);
+                    break;
+                } else if (isDigit(c)) {
+                    //Go to State 3 if digits
+                    state = 3;
+                    ungetc(c, fp);
+                    break;
+                } else if (isSymbol(c)) {
+                    //Go to State 4 if symbols
+                    state = 4;
+                    ungetc(c, fp);
+                    break;
                 } else {
+                    // Unrecognized character
                     buffer[idx++] = c;
                     state = 113;
                     break;
                 }
-
 
             //State 1 is for small letters only this includes small letters
             //in Keywords, Reserved Words, Noise Words
@@ -220,9 +216,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 18;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
 
@@ -237,9 +233,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 20;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
 
@@ -263,13 +259,13 @@ int main() {
                         state = 113; // Go to error state
                         break;
                     } else {
-                        // Valid number termination
+                        // Valid number termination (space, operator, semicolon, etc.)
                         buffer[idx] = '\0';
                         printf("NUMBER(%s)\n", buffer);
                         fprintf(out, "NUMBER(%s)\n", buffer);
                         idx = 0;
                         state = 0;
-                        ungetc(c, fp);
+                        ungetc(c, fp);  // Put back the terminating character
                         break;
                     }
                 }
@@ -277,173 +273,100 @@ int main() {
 
             case 4:
                 //FOR SYMBOLS, DELIMETERS AND BRACKETS
-                exit = 0;
                 if (c == '*') {
-                    int next = fgetc(fp);
-                    if (next == '*') {
-                        printf("ARITH_OP(**)\n");
-                        fprintf(out, "ARITH_OP(**)\n");
-                    } else {
-                        printf("ARITH_OP(*)\n");
-                        fprintf(out, "ARITH_OP(*)\n");
-                        ungetc(next, fp);
-                    }
-                    state = 0;
+                    state = 116;
+                    ungetc(c, fp);
+                    break;
+                } else if (c == '/') {
+                    state = 117;
+                    ungetc(c, fp);
                     break;
                 }
-                else if (c == '/') {
-                    int next = fgetc(fp);
-                    if (next == '/') {
-                        // Floor division operator
-                        printf("ARITH_OP(//)\n");
-                        fprintf(out, "ARITH_OP(//)\n");
-                        state = 0;
-                        break;
-                    } else if (next == '*') {
-                        // Multi-line comment start
-                        printf("COMMENT_START(/*)\n");
-                        fprintf(out, "COMMENT_START(/*)\n");
-                        idx = 0;
-                        state = 112; // multi-line comment state
-                        break;
-                    } else {
-                        printf("ARITH_OP(/)\n");
-                        fprintf(out, "ARITH_OP(/)\n");
-                        ungetc(next, fp);
-                        state = 0;
-                        break;
-                    }
-                }
                 else if (c == '+') {
-                    int next = fgetc(fp);
-                    if (next == '+') {
-                        printf("INCREMENT(++)\n");
-                        fprintf(out, "INCREMENT(++)\n");
-                    } else {
-                        printf("ARITH_OP(+)\n");
-                        fprintf(out, "ARITH_OP(+)\n");
-                        ungetc(next, fp);
-                    }
-                    state = 0;
+                    state = 118;
+                    ungetc(c, fp);
                     break;
                 }
                 else if (c == '-') {
-                    int next = fgetc(fp);
-                    if (next == '-') {
-                        printf("DECREMENT(--)\n");
-                        fprintf(out, "DECREMENT(--)\n");
-                    } else {
-                        printf("ARITH_OP(-)\n");
-                        fprintf(out, "ARITH_OP(-)\n");
-                        ungetc(next, fp);
-                    }
-                    state = 0;
+                    state = 119;
+                    ungetc(c, fp);
                     break;
                 }
                 else if (c == '%') {
-                    printf("ARITH_OP(%%)\n");
-                    fprintf(out, "ARITH_OP(%%)\n");
-                    state = 0;
+                    state = 120;
+                    ungetc(c, fp);
                     break;
                 }
                 else if (c == '=') {
-                    printf("ASSIGN_OP(=)\n");
-                    fprintf(out, "ASSIGN_OP(=)\n");
-                    state = 0;
+                    state = 121;
+                    ungetc(c, fp);
                     break;
                 }
                 else if (c == '>') {
-                    int next = fgetc(fp);
-                    if (next == '=') {
-                        printf("REL_OP(>=)\n");
-                        fprintf(out, "REL_OP(>=)\n");
-                    } else {
-                        printf("REL_OP(>)\n");
-                        fprintf(out, "REL_OP(>)\n");
-                        ungetc(next, fp);
-                    }
-                    state = 0;
+                    state = 123;
+                    ungetc(c, fp);
                     break;
                 }
                 else if (c == '<') {
-                    int next = fgetc(fp);
-                    if (next == '=') {
-                        printf("REL_OP(<=)\n");
-                        fprintf(out, "REL_OP(<=)\n");
-                    } else {
-                        printf("REL_OP(<)\n");
-                        fprintf(out, "REL_OP(<)\n");
-                        ungetc(next, fp);
-                    }
-                    state = 0;
+                    state = 124;
+                    ungetc(c, fp);
                     break;
                 }
                 else if (c == '!') {
-                    int next = fgetc(fp);
-                    if (next == '=') {
-                        printf("REL_OP(!=)\n");
-                        fprintf(out, "REL_OP(!=)\n");
-                    } else {
-                        printf("ERROR(!)\n");
-                        fprintf(out, "ERROR(!)\n");
-                        ungetc(next, fp);
-                    }
-                    state = 0;
+                    state = 122;
+                    ungetc(c, fp);
                     break;
                 }
                 else if (c == '(') {
-                    printf("LEFT_PAREN(()\n");
-                    fprintf(out, "LEFT_PAREN(()\n");
-                    state = 0;
+                    state = 125;
+                    ungetc(c, fp);
                     break;
                 }
                 else if (c == ')') {
-                    printf("RIGHT_PAREN())\n");
-                    fprintf(out, "RIGHT_PAREN())\n");
-                    state = 0;
+                    state = 126;
+                    ungetc(c, fp);
                     break;
+
                 }
                 else if (c == '{') {
-                    printf("LEFT_BRACE({)\n");
-                    fprintf(out, "LEFT_BRACE({)\n");
-                    state = 0;
+                    state = 127;
+                    ungetc(c, fp);
                     break;
+
                 }
                 else if (c == '}') {
-                    printf("RIGHT_BRACE(})\n");
-                    fprintf(out, "RIGHT_BRACE(})\n");
-                    state = 0;
+                    state = 128;
+                    ungetc(c, fp);
                     break;
+
                 }
                 else if (c == '[') {
-                    printf("LEFT_BRACKET([)\n");
-                    fprintf(out, "LEFT_BRACKET([)\n");
-                    state = 0;
+                    state = 129;
+                    ungetc(c, fp);
                     break;
                 }
                 else if (c == ']') {
-                    printf("RIGHT_BRACKET(])\n");
-                    fprintf(out, "RIGHT_BRACKET(])\n");
-                    state = 0;
+                    state = 130;
+                    ungetc(c, fp);
                     break;
                 }
                 else if (c == ';') {
-                    printf("SEMICOLON(;)\n");
-                    fprintf(out, "SEMICOLON(;)\n");
-                    state = 0;
-                    break;
-                }
-                else if (c == ',') {
-                    printf("COMMA(,)\n");
-                    fprintf(out, "COMMA(,)\n");
-                    state = 0;
+                    state = 131;
+                    ungetc(c, fp);
                     break;
                 }
                 else if (c == '#') {
-                    printf("COMMENT(#)\n");
-                    fprintf(out, "COMMENT(#)\n");
+                    state = 132;
+                    ungetc(c, fp);
+                    break;
+                } else if (c == '"') {
                     idx = 0;
-                    state = 111; // single-line comment state
+                    state = 114; // string state
+                    break;
+                }
+                else if (c == '\'') {
+                    idx = 0;
+                    state = 115; // character state
                     break;
                 }
                 // For unrecognized symbols
@@ -452,7 +375,6 @@ int main() {
                     state = 113;
                     break;
                 }
-
             case 5:
                 //Keywords: if, input,
                 //Reserve Words: int
@@ -467,8 +389,8 @@ int main() {
                     state = 21;
                     break;
                 } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
 
@@ -483,9 +405,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 23;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 7:
@@ -499,9 +421,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 25;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
 
@@ -511,9 +433,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 26;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
 
@@ -533,9 +455,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 29;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 10:
@@ -544,9 +466,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 30;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 11:
@@ -561,9 +483,9 @@ int main() {
                     state = 74; // logical operator final state
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 12:
@@ -577,9 +499,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 33;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 13:
@@ -588,9 +510,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 34;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 14:
@@ -599,9 +521,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 68;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 15:
@@ -610,9 +532,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 35;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 16:
@@ -626,9 +548,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 78;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 17:
@@ -637,9 +559,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 37;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 18:
@@ -649,9 +571,9 @@ int main() {
                     state = 75; //Noise word
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 19:
@@ -660,9 +582,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 38;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 20:
@@ -671,9 +593,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 39;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 21:
@@ -688,9 +610,9 @@ int main() {
                     state = 100; // reserve word
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 22:
@@ -699,9 +621,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 41;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 23:
@@ -711,9 +633,9 @@ int main() {
                     state = 75; //Noise word
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 24:
@@ -723,9 +645,9 @@ int main() {
                     state = 50; // keyword
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 25:
@@ -734,9 +656,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 42;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 26:
@@ -745,9 +667,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 43;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 27:
@@ -756,9 +678,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 44;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 28:
@@ -767,9 +689,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 45;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 29:
@@ -778,9 +700,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 46;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 30:
@@ -789,9 +711,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 47;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 31:
@@ -800,9 +722,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 48;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 32:
@@ -811,9 +733,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 49;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 33:
@@ -822,9 +744,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 51;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 34:
@@ -833,9 +755,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 52;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 35:
@@ -844,9 +766,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 53;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 36:
@@ -855,9 +777,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 54;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 37:
@@ -866,9 +788,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 55;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 38:
@@ -877,9 +799,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 56;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 39:
@@ -888,9 +810,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 57;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 40:
@@ -905,9 +827,9 @@ int main() {
                     state = 100; // reserve word
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
 
@@ -918,9 +840,9 @@ int main() {
                     state = 50;
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 42:
@@ -929,9 +851,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 59;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 43:
@@ -940,9 +862,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 60;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 44:
@@ -951,9 +873,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 61;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 45:
@@ -963,9 +885,9 @@ int main() {
                     state = 100; // reserve word
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 46:
@@ -974,9 +896,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 62;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 47:
@@ -985,9 +907,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 63;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 48:
@@ -996,9 +918,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 64;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 49:
@@ -1011,15 +933,14 @@ int main() {
                     buffer[idx++] = c;
                     state = 66;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 50:
                 int next = fgetc(fp);
-                //printf("case50: next = \"%c\"\n", next);
-                if (next == ' ' || next == '\n' || next == '\t' || next == '(' || next == ';' || next == '{' || next == '}' || next == -1) {
+                if (next == ' ' || next == '\n' || next == '\t' || next == '(' || next == ';' || next == '{' || next == '}' || next == ':' || next == ')' || next == -1) {
                     buffer[idx] = '\0';
                     printf("KEYWORD(%s)\n", buffer);
                     fprintf(out, "KEYWORD(%s)\n", buffer);
@@ -1029,8 +950,8 @@ int main() {
                     ungetc(next, fp);
                     break;
                 } else {
-
-                    buffer[idx++] = c;
+                    // Don't put back c, just continue reading
+                    buffer[idx++] = next;  // Add the next character instead
                     state = 110; // identifier
                     break;
                 }
@@ -1041,9 +962,9 @@ int main() {
                     state = 100; // reserve word
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 52:
@@ -1053,9 +974,9 @@ int main() {
                     state = 50;
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 53:
@@ -1065,9 +986,9 @@ int main() {
                     state = 100;
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 54:
@@ -1077,9 +998,9 @@ int main() {
                     state = 100;
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 55:
@@ -1089,9 +1010,9 @@ int main() {
                     state = 75;
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 56:
@@ -1101,9 +1022,9 @@ int main() {
                     state = 100;
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 57:
@@ -1112,9 +1033,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 67;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 58:
@@ -1124,9 +1045,9 @@ int main() {
                     state = 50;
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 59:
@@ -1136,9 +1057,9 @@ int main() {
                     state = 100;
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 60:
@@ -1148,9 +1069,9 @@ int main() {
                     state = 50; // keyword
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 61:
@@ -1160,9 +1081,9 @@ int main() {
                     state = 50; // keyword
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 62:
@@ -1172,9 +1093,9 @@ int main() {
                     state = 75;
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 63:
@@ -1183,9 +1104,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 69;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 64:
@@ -1194,9 +1115,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 70;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 65:
@@ -1206,9 +1127,9 @@ int main() {
                     state = 50; // keyword
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 66:
@@ -1217,9 +1138,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 71;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 67:
@@ -1229,9 +1150,9 @@ int main() {
                     state = 100;
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 68:
@@ -1241,9 +1162,9 @@ int main() {
                     state = 100;
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 69:
@@ -1253,9 +1174,9 @@ int main() {
                     state = 50; // keyword
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 70:
@@ -1265,9 +1186,9 @@ int main() {
                     state = 50; // keyword
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 71:
@@ -1276,9 +1197,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 72;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
 
@@ -1288,9 +1209,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 73;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 73:
@@ -1300,15 +1221,15 @@ int main() {
                     state = 50; // keyword
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
             case 74:
                 // Final state for logical operators
                 next = fgetc(fp);
-                if (next == ' ' || next == '\n' || next == '\t' || next == '(' || next == ';' || next == '{' || next == '}' || next == -1) {
+                if (next == ' ' || next == '\n' || next == '\t' || next == '(' || next == ';' || next == '{' || next == '}' || next == ':' || next == ')' || next == -1) {
                     buffer[idx] = '\0';
                     printf("LOGICAL(%s)\n", buffer);
                     fprintf(out, "LOGICAL(%s)\n", buffer);
@@ -1318,14 +1239,13 @@ int main() {
                     ungetc(next, fp);
                     break;
                 } else {
-                    buffer[idx++] = c;
+                    buffer[idx++] = next;  // Add the next character instead
                     state = 110; // identifier
                     break;
                 }
             case 75:
                 next = fgetc(fp);
-                //printf("case75: next = \"%c\"\n", next);
-                if (next == ' ' || next == '\n' || next == '\t' || next == '(' || next == ';' || next == '{' || next == '}' || next == -1) {
+                if (next == ' ' || next == '\n' || next == '\t' || next == '(' || next == ';' || next == '{' || next == '}' || next == ':' || next == ')' || next == -1) {
                     buffer[idx] = '\0';
                     printf("NOISE_WORD(%s)\n", buffer);
                     fprintf(out, "NOISE_WORD(%s)\n", buffer);
@@ -1335,8 +1255,7 @@ int main() {
                     ungetc(next, fp);
                     break;
                 } else {
-
-                    buffer[idx++] = c;
+                    buffer[idx++] = next;  // Add the next character instead
                     state = 110; // identifier
                     break;
                 }
@@ -1346,9 +1265,9 @@ int main() {
                     buffer[idx++] = c;
                     state = 79;
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
 
@@ -1359,9 +1278,9 @@ int main() {
                     state = 74; // logical operator final state
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
 
@@ -1372,16 +1291,15 @@ int main() {
                     state = 74; // logical operator final state
                     ungetc(c, fp);
                     break;
-                } else {
-                    buffer[idx++] = c;
-                    state = 110; // identifier
+                                } else {
+                    state = 110;
+                    ungetc(c, fp); // identifier
                     break;
                 }
 
             case 100:
                 next = fgetc(fp);
-                //printf("case75: next = \"%c\"\n", next);
-                if (next == ' ' || next == '\n' || next == '\t' || next == '(' || next == ';' || next == '{' || next == '}' || next == -1) {
+                if (next == ' ' || next == '\n' || next == '\t' || next == '(' || next == ';' || next == '{' || next == '}' || next == ':' || next == ')' || next == -1) {
                     buffer[idx] = '\0';
                     printf("RESERVED_WORD(%s)\n", buffer);
                     fprintf(out, "RESERVED_WORD(%s)\n", buffer);
@@ -1391,16 +1309,16 @@ int main() {
                     ungetc(next, fp);
                     break;
                 } else {
-
-                    buffer[idx++] = c;
+                    buffer[idx++] = next;  // Add the next character instead
                     state = 110; // identifier
                     break;
                 }
 
             case 110:
-                int is_letter = 0;
-                int is_digit = 0;
-                int is_underscore = 0;
+                {
+                    int is_letter = 0;
+                    int is_digit = 0;
+                    int is_underscore = 0;
 
                     if (isLetter(c, sm) || isLetter(c, cap)) {
                         is_letter = 1;
@@ -1410,24 +1328,25 @@ int main() {
                         is_digit = 1;
                     }
 
-                if (c == '_') {
-                    is_underscore = 1;
-                }
+                    if (c == '_') {
+                        is_underscore = 1;
+                    }
 
-                if (is_letter || is_digit || is_underscore) {
-                    buffer[idx++] = c;
-                    state = 110; // Stay in identifier state
-                    break;
-                } else {
-                    // End of identifier - terminate and output
-                    buffer[idx] = '\0';
-                    printf("IDENTIFIER(%s)\n", buffer);
-                    fprintf(out, "IDENTIFIER(%s)\n", buffer);
-                    idx = 0;
-                    state = 0;
-                    exit = 0;
-                    ungetc(c, fp);
-                    break;
+                    // Only valid identifier characters (letters, digits, underscore) can continue
+                    if (is_letter || is_digit || is_underscore) {
+                        buffer[idx++] = c;
+                        state = 110; // Stay in identifier state
+                        break;
+                    } else {
+                        // Any other character (space, operator, bracket, colon, etc.) terminates the identifier
+                        buffer[idx] = '\0';
+                        printf("IDENTIFIER(%s)\n", buffer);
+                        fprintf(out, "IDENTIFIER(%s)\n", buffer);
+                        idx = 0;
+                        state = 0;
+                        ungetc(c, fp);  // Put back the terminating character
+                        break;
+                    }
                 }
 
             case 111:
@@ -1505,6 +1424,311 @@ int main() {
                     }
                 }
 
+            case 114:
+                // String literal state
+                if (c == '"') {
+                    buffer[idx] = '\0';
+                    printf("STRING(%s)\n", buffer);
+                    fprintf(out, "STRING(%s)\n", buffer);
+                    idx = 0;
+                    state = 0;
+                    break;
+                } else if (c == '\n') {
+                    buffer[idx] = '\0';
+                    printf("ERROR(Unterminated string: %s)\n", buffer);
+                    fprintf(out, "ERROR(Unterminated string: %s)\n", buffer);
+                    idx = 0;
+                    state = 0;
+                    break;
+                } else {
+                    buffer[idx++] = c;
+                    state = 114;
+                    break;
+                }
+
+            case 115:
+                // Character literal state
+                if (c == '\'') {
+                    buffer[idx] = '\0';
+                    if (idx == 1) {
+                        printf("CHAR(%s)\n", buffer);
+                        fprintf(out, "CHAR(%s)\n", buffer);
+                    } else {
+                        printf("ERROR(Invalid character literal: %s)\n", buffer);
+                        fprintf(out, "ERROR(Invalid character literal: %s)\n", buffer);
+                    }
+                    idx = 0;
+                    state = 0;
+                    break;
+                } else if (c == '\n') {
+                    buffer[idx] = '\0';
+                    printf("ERROR(Unterminated character: %s)\n", buffer);
+                    fprintf(out, "ERROR(Unterminated character: %s)\n", buffer);
+                    idx = 0;
+                    state = 0;
+                    break;
+                } else {
+                    buffer[idx++] = c;
+                    state = 115;
+                    break;
+                }
+            case 116:
+                if (c == '*') {
+                    int next = fgetc(fp);
+                    if (next == '*') {
+                        state = 138;
+                        ungetc(next, fp);
+                        break;
+                    } else {
+                        printf("ARITH_OP(*)\n");
+                        fprintf(out, "ARITH_OP(*)\n");
+                        state = 0;
+                        ungetc(next, fp);
+                        break;
+                    }
+                }
+            case 117:
+                if (c == '/') {
+                    int next = fgetc(fp);
+                    if (next == '/') {
+                        // Floor division operator
+                        state = 133;
+                        ungetc(next, fp);
+                        break;
+
+                    } else if (next == '*') {
+                        state = 134;
+                        ungetc(next, fp);
+                        break;
+                    } else {
+                        printf("ARITH_OP(/)\n");
+                        fprintf(out, "ARITH_OP(/)\n");
+                        ungetc(next, fp);
+                        state = 0;
+                        break;
+                    }
+                }
+
+            case 118:
+                if (c == '+') {
+                    int next = fgetc(fp);
+                    if (next == '+') {
+                        state = 136;
+                        ungetc(next, fp);
+                        break;
+                    } else {
+                        printf("ARITH_OP(+)\n");
+                        fprintf(out, "ARITH_OP(+)\n");
+                        ungetc(next, fp);
+                    }
+                    state = 0;
+                    break;
+                }
+            case 119:
+                if (c == '-') {
+                    int next = fgetc(fp);
+                    if (next == '-') {
+                        state = 137;
+                        ungetc(next, fp);
+                        break;
+                    } else {
+                        printf("ARITH_OP(-)\n");
+                        fprintf(out, "ARITH_OP(-)\n");
+                        ungetc(next, fp);
+                    }
+                    state = 0;
+                    break;
+                }
+            case 120:
+                if (c == '%') {
+                    printf("ARITH_OP(%%)\n");
+                    fprintf(out, "ARITH_OP(%%)\n");
+                    state = 0;
+                    break;
+                }
+            case 121:
+                if (c == '=') {
+                    int next = fgetc(fp);
+                    if (next == '=') {
+                        ungetc(next, fp);
+                        state = 135;
+                        break;
+                    } else {
+                        // Assignment operator
+                        printf("ASSIGN_OP(=)\n");
+                        fprintf(out, "ASSIGN_OP(=)\n");
+                        ungetc(next, fp);
+                    }
+                    state = 0;
+                    break;
+                }
+            case 122:
+                if (c == '!') {
+                    int next = fgetc(fp);
+                    if (next == '=') {
+                        state = 139;
+                        ungetc(next, fp);
+                        break;
+                    } else {
+                        printf("ERROR(!)\n");
+                        fprintf(out, "ERROR(!)\n");
+                        ungetc(next, fp);
+                    }
+                    state = 0;
+                    break;
+                }
+            case 123:
+                if (c == '>') {
+                    int next = fgetc(fp);
+                    if (next == '=') {
+                        state = 140;
+                        ungetc(next, fp);
+                        break;
+                    } else {
+                        printf("REL_OP(>)\n");
+                        fprintf(out, "REL_OP(>)\n");
+                        ungetc(next, fp);
+                    }
+                    state = 0;
+                    break;
+                }
+            case 124:
+                if (c == '<') {
+                    int next = fgetc(fp);
+                    if (next == '=') {
+                        state = 141;
+                        ungetc(next, fp);
+                        break;
+                    } else {
+                        printf("REL_OP(<)\n");
+                        fprintf(out, "REL_OP(<)\n");
+                        ungetc(next, fp);
+                    }
+                    state = 0;
+                    break;
+                }
+            case 125:
+                if (c == '(') {
+                    printf("LEFT_PAREN(()\n");
+                    fprintf(out, "LEFT_PAREN(()\n");
+                    state = 0;
+                    break;
+                }
+            case 126:
+                if (c == ')') {
+                    printf("RIGHT_PAREN())\n");
+                    fprintf(out, "RIGHT_PAREN())\n");
+                    state = 0;
+                    break;
+                }
+            case 127:
+                if (c == '{') {
+                    printf("LEFT_BRACE({)\n");
+                    fprintf(out, "LEFT_BRACE({)\n");
+                    state = 0;
+                    break;
+                }
+            case 128:
+                if (c == '}') {
+                    printf("RIGHT_BRACE(})\n");
+                    fprintf(out, "RIGHT_BRACE(})\n");
+                    state = 0;
+                    break;
+                }
+            case 129:
+                if (c == '[') {
+                    printf("LEFT_BRACKET([)\n");
+                    fprintf(out, "LEFT_BRACKET([)\n");
+                    state = 0;
+                    break;
+                }
+            case 130:
+                if (c == ']') {
+                    printf("RIGHT_BRACKET(])\n");
+                    fprintf(out, "RIGHT_BRACKET(])\n");
+                    state = 0;
+                    break;
+                }
+            case 131:
+                if (c == ';') {
+                    printf("SEMICOLON(;)\n");
+                    fprintf(out, "SEMICOLON(;)\n");
+                    state = 0;
+                    break;
+                }
+            case 132:
+                if (c == '#') {
+                    printf("COMMENT(#)\n");
+                    fprintf(out, "COMMENT(#)\n");
+                    idx = 0;
+                    state = 111; // single-line comment state
+                    break;
+                }
+            case 133:
+                if (c == '/') {
+                    printf("ARITH_OP(//)\n");
+                    fprintf(out, "ARITH_OP(//)\n");
+                    state = 0;
+                    break;
+                }
+            case 134:
+                if (c == '*') {
+                    // Multi-line comment start
+                    printf("COMMENT_START(/*)\n");
+                    fprintf(out, "COMMENT_START(/*)\n");
+                    idx = 0;
+                    state = 112; // multi-line comment state
+                    break;
+                }
+            case 135:
+                if (c == '=') {
+                    printf("REL_OP(==)\n");
+                    fprintf(out, "REL_OP(==)\n");
+                    state = 0;
+                    break;
+                }
+            case 136:
+                if (c == '+') {
+                    printf("INCREMENT(++)\n");
+                    fprintf(out, "INCREMENT(++)\n");
+                    state = 0;
+                    break;
+                }
+            case 137:
+                if (c == '-') {
+                    printf("DECREMENT(--)\n");
+                    fprintf(out, "DECREMENT(--)\n");
+                    state = 0;
+                    break;
+                }
+            case 138:
+                if (c == '*') {
+                    printf("ARITH_OP(**)\n");
+                    fprintf(out, "ARITH_OP(**)\n");
+                    state = 0;
+                    break;
+                }
+            case 139:
+                if (c == '=') {
+                    printf("REL_OP(!=)\n");
+                    fprintf(out, "REL_OP(!=)\n");
+                    state = 0;
+                    break;
+                }
+            case 140:
+                if (c == '=') {
+                    printf("REL_OP(>=)\n");
+                    fprintf(out, "REL_OP(>=)\n");
+                    state = 0;
+                    break;
+                }
+            case 141:
+                if (c == '=') {
+                    printf("REL_OP(<=)\n");
+                    fprintf(out, "REL_OP(<=)\n");
+                    state = 0;
+                    break;
+                }
             default:
                 break;
         }
