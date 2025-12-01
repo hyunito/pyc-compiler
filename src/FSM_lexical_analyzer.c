@@ -12,7 +12,7 @@ char sm[] = {
 
 char symbols[] = {
     '!', '#', '^', '*', '%', '&', '(', ')', '[', ']', '{', '}', '<', '>',
-    '+', '=', '-', '|', '/', ';', ':', '\'', '"', ',', '.', '_', '?'
+    '+', '=', '-', '|', '/', ';', ':', '\'', '"', ',', '.', '_'
 };
 
 char digits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
@@ -359,7 +359,11 @@ int main() {
                     state = 132;
                     ungetc(c, fp);
                     break;
-                } else if (c == '"') {
+                } else if (c == ',') {
+                    state = 142;
+                    ungetc(c, fp);
+                    break;
+                }  else if (c == '"') {
                     idx = 0;
                     state = 114; // string state
                     break;
@@ -1726,6 +1730,13 @@ int main() {
                 if (c == '=') {
                     printf("REL_OP(<=)\n");
                     fprintf(out, "REL_OP(<=)\n");
+                    state = 0;
+                    break;
+                }
+            case 142:
+                if (c == ',') {
+                    printf("COMMA(,)\n");
+                    fprintf(out, "COMMA(,)\n");
                     state = 0;
                     break;
                 }
