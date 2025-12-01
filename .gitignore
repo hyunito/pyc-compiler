@@ -4,3 +4,6 @@
 # Generated files
 Symbol_Table.txt
 Symbol_Table_Output.txt
+
+# CodeQL artifacts
+_codeql_detected_source_root
