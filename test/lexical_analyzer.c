@@ -191,14 +191,8 @@ int main() {
                         printf("NOISE_WORD(%s)\n", buffer);
                         fprintf(out, "NOISE_WORD(%s)\n", buffer);
                     } else {
-                        if (c != '!' && c != '}' && c != '@' && c != '#' && c != '$' && c != '^' && c != ')' && c != '&' && c != '|' && c != '\\'){
-                            printf("IDENTIFIER(%s)\n", buffer);
-                            fprintf(out,"IDENTIFIER(%s)\n", buffer);
-                        } else {
-                            printf("ERROR(%c)\n", c);
-                            fprintf(out,"ERROR(%c)\n", c);
-                            c = fgetc(fp);
-                        }
+                        printf("IDENTIFIER(%s)\n", buffer);
+                        fprintf(out,"IDENTIFIER(%s)\n", buffer);
                     }
                     idx = 0;
                     state = 0;

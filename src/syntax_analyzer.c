@@ -300,7 +300,9 @@ void parseStatement() {
 
     if (isKeyword("return")) {
         match("KEYWORD");
-        parseExpression();
+        if (strcmp(peek().type, "SEMICOLON") != 0) {
+            parseExpression();
+        }
         match("SEMICOLON");
         return;
     }
@@ -327,7 +329,16 @@ void parseStatement() {
 
     if (isNoise("begin")) {
         match("NOISE_WORD");
-        parseBlock();
+        if (strcmp(peek().type, "SEMICOLON") == 0) {
+            match("SEMICOLON");
+        }
+        return;
+    }
+    if (isNoise("end")) {
+        match("NOISE_WORD");
+        if (strcmp(peek().type, "SEMICOLON") == 0) {
+            match("SEMICOLON");
+        }
         return;
     }
     if (strcmp(peek().type, "LEFT_BRACE") == 0) {
@@ -1053,6 +1064,18 @@ int main() {
         printf("Parsing finished. Total errors: %d\n", errorCount);
     } else {
         printf("Parsing finished successfully.\n");
+    }
+
+    // Write symbol table
+    FILE *symOut = fopen("Symbol_Table_Output.txt", "w");
+    if (symOut) {
+        fprintf(symOut, "=== Symbol Table ===\n");
+        for (int i = 0; i < symbolCount; i++) {
+            fprintf(symOut, "%s\n", symbolTable[i].name);
+        }
+        fclose(symOut);
+    } else {
+        printf("Warning: Could not create Symbol_Table_Output.txt\n");
     }
 
     return 0;

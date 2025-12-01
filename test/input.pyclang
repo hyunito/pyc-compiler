@@ -1,0 +1,79 @@
+# Comprehensive PyC Test File - All Statement Types
+
+void main() {
+begin
+    # Declaration Statement
+    int a, b, c;
+    float result;
+    str message;
+    bool flag;
+    str userInput;
+    
+    # Input Statement
+    userInput = input("Enter first number: ");
+    
+    # Assignment Statement - Variation 1: Constant to Variable
+    a = 5;
+    b = 42;
+    
+    # Assignment Statement - Variation 2: Variable to Variable
+    c = b;
+    
+    # Assignment Statement - Variation 3: Expression to Variable
+    result = a + b * 2 - 5;
+    
+    # Output Statement - Variation 1: String literal only
+    output("=== PyC Language Test ===");
+    
+    # Output Statement - Variation 2: Variable only
+    output(result);
+    
+    # Output Statement - Variation 3: String + Variable
+    output("The result is: {result}");
+    
+    # Condition Statement - Variation 1: Simple IF
+    if (a > 10) then {
+        output("A is greater than 10");
+    }
+    
+    # Condition Statement - Variation 2: IF-ELSE
+    if (b > c) then {
+        output("B is greater than C");
+    } else {
+        output("C is greater or equal to B");
+    }
+    
+    # Condition Statement - Variation 3: IF-ELSE-IF
+    if (result > 100) then {
+        message = "High value";
+    } else if (result > 50) then {
+        message = "Medium value";
+    } else {
+        message = "Low value";
+    }
+    output(message);
+    
+    # Iterative Statement - Variation 1: Simple loop
+    int i = 0;
+    while (i < 5) do {
+        output("Simple loop iteration: {i}");
+        i = i + 1;
+    }
+    
+    # Iterative Statement - Variation 2: Nested loop
+    int outer = 0;
+    while (outer < 3) do {
+        int inner = 0;
+        while (inner < 3) do {
+            output("Outer: {outer}, Inner: {inner}");
+            inner = inner + 1;
+        }
+        outer = outer + 1;
+    }
+    
+    output("All tests completed!");
+    return;
+end;
+}
+
+
