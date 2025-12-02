@@ -102,7 +102,7 @@ int main() {
                 } else if (c == EOF || c == -1) {
                     break;
                 }
-                
+
                 //Go to State 1 if small letters
                 if (isLetter(c, sm)) {
                     state = 1;
@@ -1412,7 +1412,7 @@ int main() {
                             is_valid = 1;
                         }
                     if (c == '_') is_valid = 1;
-                    
+
                     if (is_valid) {
                         buffer[idx++] = c;
                         state = 113;

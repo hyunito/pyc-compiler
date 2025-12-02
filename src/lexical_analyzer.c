@@ -13,7 +13,8 @@ int str_equal(const char *a, const char *b) {
 
 const char *keywords[] = {
     "main","output","input","if","else",
-    "while","for","break","continue","return"
+    "while","for","break","continue","return",
+    "const"
 };
 
 const char *reserved[] = {
