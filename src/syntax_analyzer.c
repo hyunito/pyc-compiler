@@ -12,6 +12,7 @@ typedef struct {
 
 typedef struct {
     char name[100];
+    char type[20];
     int isDeclared;
 } Identifier;
 
@@ -20,6 +21,7 @@ int tokenCount = 0;
 int current = 0;
 int errorCount = 0;
 int lines = 1;
+int braceBalance = 0;
 
 Identifier symbolTable[MAX_IDENTIFIERS];
 int symbolCount = 0;
@@ -33,7 +35,6 @@ int isAtEnd() {
 Token peekAt(int offset);
 
 Token peek() {
-
     if (isAtEnd()) return EOF_TOKEN;
     return tokens[current];
 }
@@ -52,7 +53,6 @@ void logTransition(const char* from, const char* input, const char* to) {
 }
 
 void advance() {
-
     if(isAtEnd()) return;
 
     while (!isAtEnd() && strcmp(tokens[current].type, "NEW_LINE") == 0) {
@@ -99,29 +99,43 @@ void recover() {
 }
 
 int match(const char* expected) {
-
     if (strcmp(peek().type, expected) == 0) {
+        if (strcmp(expected, "LEFT_BRACE") == 0) braceBalance++;
+        if (strcmp(expected, "RIGHT_BRACE") == 0) {
+            braceBalance--;
+            if (braceBalance < 0) {
+                printf("Syntax Error at Line %d: Extra closing brace '}'.\n", lines);
+                errorCount++;
+                braceBalance = 0;
+            }
+        }
+
         advance();
         return 1;
     }
-
     printf("Syntax Error at Line %d: Expected %s but got %s (%s)\n", lines,
            expected, peek().type, peek().value);
-
     errorCount++;
     recover();
     return 0;
 }
 
-void declareIdentifier(const char* name) {
+void declareIdentifier(const char* name, const char* type) {
     for (int i = 0; i < symbolCount; i++) {
         if (strcmp(symbolTable[i].name, name) == 0) {
+            printf("Syntax Error at Line %d: Identifier '%s' is already declared.\n", lines, name);
+            errorCount++;
             return;
         }
     }
+
     if (symbolCount < MAX_IDENTIFIERS) {
         strncpy(symbolTable[symbolCount].name, name, sizeof(symbolTable[symbolCount].name)-1);
         symbolTable[symbolCount].name[sizeof(symbolTable[symbolCount].name)-1] = '\0';
+
+        strncpy(symbolTable[symbolCount].type, type, sizeof(symbolTable[symbolCount].type)-1);
+        symbolTable[symbolCount].type[sizeof(symbolTable[symbolCount].type)-1] = '\0';
+
         symbolTable[symbolCount].isDeclared = 1;
         symbolCount++;
     }
@@ -134,6 +148,51 @@ int isIdentifierDeclared(const char* name) {
         }
     }
     return 0;
+}
+
+const char* getIdentifierType(const char* name) {
+    for (int i = 0; i < symbolCount; i++) {
+        if (strcmp(symbolTable[i].name, name) == 0) {
+            return symbolTable[i].type;
+        }
+    }
+    return "unknown";
+}
+
+void validateStringInterpolation(const char* content) {
+    int len = strlen(content);
+    char buffer[100];
+    int bufIdx = 0;
+    int insideBraces = 0;
+
+    for(int i = 0; i < len; i++) {
+        if (content[i] == '{') {
+            insideBraces = 1;
+            bufIdx = 0;
+            continue;
+        }
+
+        if (content[i] == '}') {
+            if (insideBraces) {
+                buffer[bufIdx] = '\0';
+                insideBraces = 0;
+
+                if (bufIdx > 0) {
+                    if (!isIdentifierDeclared(buffer)) {
+                        printf("Syntax Error at Line %d: Identifier '%s' inside string interpolation is not declared.\n", lines, buffer);
+                        errorCount++;
+                    }
+                }
+            }
+            continue;
+        }
+
+        if (insideBraces) {
+            if (bufIdx < 99) {
+                buffer[bufIdx++] = content[i];
+            }
+        }
+    }
 }
 
 int isKeyword(const char* k) {
@@ -159,23 +218,37 @@ int isTypeValue(const char* val) {
            strcmp(val, "void") == 0;
 }
 
+int isConstTypeStart() {
+    return strcmp(peek().type, "KEYWORD") == 0 &&
+           strcmp(peek().value, "const") == 0;
+}
+
 int findMain() {
-    for (int i = 0; i < tokenCount - 3; i++) {
-        if (strcmp(tokens[i].type, "KEYWORD") == 0 &&
+    for(int i = 0; i < tokenCount - 3; i++) {
+        if (strcmp(tokens[i]. type, "KEYWORD") == 0 &&
             strcmp(tokens[i].value, "main") == 0 &&
             strcmp(tokens[i+1].type, "LEFT_PAREN") == 0 &&
-            strcmp(tokens[i+2].type, "RIGHT_PAREN") == 0 &&
-            (strcmp(tokens[i+3].type, "NOISE_WORD") == 0 ||
-            strcmp(tokens[i+3].type, "LEFT_BRACE") == 0)) {
-            return i;
-        }
+            strcmp(tokens[i+2].type, "RIGHT_PAREN") == 0) {
+
+            // Skip NEW_LINE tokens after the closing paren
+            int j = i + 3;
+            while (j < tokenCount && strcmp(tokens[j].type, "NEW_LINE") == 0) {
+                j++;
+            }
+
+            // Check if next non-newline token is begin or {
+            if (j < tokenCount &&
+                (strcmp(tokens[j].type, "NOISE_WORD") == 0 ||
+                 strcmp(tokens[j].type, "LEFT_BRACE") == 0)) {
+                return i;
+                 }
+            }
     }
     return -1;
 }
 
 void parseProgram();
 void parseBlock();
-
 void parseStatement();
 void parseDeclaration();
 void parseAssignment();
@@ -188,7 +261,6 @@ void parseInputStatement();
 void parseFunctionDef();
 void parseFunctionCall();
 void parseArrayAssignment();
-
 void parseExpression();
 void parseLogicalOr();
 void parseLogicalAnd();
@@ -216,22 +288,50 @@ void parseProgram() {
 }
 
 void parseBlock() {
+    int hasBegin = 0;
+    int hasBrace = 0;
     logTransition("parseBlock", tokens[current].value, "dispatching");
     if (isNoise("begin")) {
         logTransition("parseBlock","begin", "body");
         match("NOISE_WORD");
+        hasBegin = 1;
     }
 
-    match("LEFT_BRACE");
+    if (strcmp(peek().type, "LEFT_BRACE") == 0) {
+        match("LEFT_BRACE");
+        hasBrace = 1;
+    }
 
-    while (!isAtEnd() && strcmp(peek().type, "RIGHT_BRACE") != 0) {
+    if (!hasBegin && !hasBrace) {
+        printf("Syntax Error at Line %d: Expected '{' or 'begin' to start block but got %s (%s)\n",
+               lines, peek().type, peek().value);
+        errorCount++;
+        recover();
+        return;
+    }
+
+    while (!isAtEnd()) {
+        if (hasBrace && strcmp(peek().type, "RIGHT_BRACE") == 0) {
+            break;
+        }
+        if (hasBegin && isNoise("end")) {
+            break;
+        }
         logTransition("parseBlock", tokens[current].value, "parseStatement");
         parseStatement();
     }
 
-    match("RIGHT_BRACE");
+    if (hasBrace) {
+        match("RIGHT_BRACE");
+    }
 
-    if (isNoise("end")) match("NOISE_WORD");
+    if (hasBegin && isNoise("end")) {
+        match("NOISE_WORD");
+
+        if (strcmp(peek().type, "SEMICOLON") == 0) {
+            match("SEMICOLON");
+        }
+    }
 }
 
 void parseStatement() {
@@ -268,8 +368,10 @@ void parseStatement() {
 
     if (isKeyword("return")) {
         match("KEYWORD");
-        logTransition("parseStatement", tokens[current].value, "parseExpression");
-        parseExpression();
+        if (strcmp(peek(). type, "SEMICOLON") != 0) {
+            logTransition("parseStatement", tokens[current].value, "parseExpression");
+            parseExpression();
+        }
         match("SEMICOLON");
         return;
     }
@@ -306,6 +408,11 @@ void parseStatement() {
     if (strcmp(peek().type, "LEFT_BRACE") == 0) {
         logTransition("parseStatement", tokens[current].value, "parseBlock");
         parseBlock();
+        return;
+    }
+
+    if (isConstTypeStart()) {
+        parseDeclaration();
         return;
     }
 
@@ -361,13 +468,23 @@ void parseStatement() {
 }
 
 void parseDeclaration() {
+    int isConst = 0;
+
+    if (isConstTypeStart()) {
+        isConst = 1;
+        match("KEYWORD");
+    }
+
+    char declaredType[20];
+    strncpy(declaredType, peek().value, sizeof(declaredType)-1);
+
+    declaredType[sizeof(declaredType)-1] = '\0';
+
     match("RESERVED_WORD");
-    logTransition("parseDeclaration", tokens[current].value, "ASSIGN_OP | COMMA");
 
     if (strcmp(peek().type, "IDENTIFIER") != 0) {
         printf("Syntax Error at Line %d: Expected identifier in declaration.\n", lines);
         errorCount++;
-        logTransition("parseDeclaration", tokens[current].value, "errorRecovery");
         recover();
         return;
     }
@@ -378,13 +495,49 @@ void parseDeclaration() {
         idname[sizeof(idname)-1] = '\0';
         match("IDENTIFIER");
 
+        declareIdentifier(idname, declaredType);
+
         if (strcmp(peek().type, "ASSIGN_OP") == 0) {
             match("ASSIGN_OP");
-            logTransition("ASSIGN_OP", tokens[current].value, "parseExpression");
-            parseExpression();
-        }
 
-        declareIdentifier(idname);
+            if (strcmp(peek().type, "RESERVED_WORD") == 0 && isTypeValue(peek().value) &&
+                strcmp(peekNext().type, "LEFT_PAREN") == 0 && isKeywordAt(2, "input")) {
+
+                char castType[20];
+                strncpy(castType, peek().value, sizeof(castType)-1);
+                castType[sizeof(castType)-1] = '\0';
+
+                if (strcmp(declaredType, castType) != 0) {
+                    printf("Syntax Error at Line %d: Type mismatch. Cannot assign %s(input) to variable of type %s.\n", lines, castType, declaredType);
+                    errorCount++;
+                }
+
+                match("RESERVED_WORD");
+                match("LEFT_PAREN");
+                match("KEYWORD");
+                match("LEFT_PAREN");
+                match("STRING");
+                match("RIGHT_PAREN");
+                match("RIGHT_PAREN");
+
+            }
+
+            else if (isKeyword("input")) {
+                if (strcmp(declaredType, "str") != 0 && strcmp(declaredType, "char") != 0) {
+                     printf("Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable is type %s.\n", lines, declaredType);
+                     errorCount++;
+                }
+
+                match("KEYWORD");
+                match("LEFT_PAREN");
+                match("STRING");
+                match("RIGHT_PAREN");
+            }
+            else {
+                logTransition("ASSIGN_OP", tokens[current].value, "parseExpression");
+                parseExpression();
+            }
+        }
 
         if (strcmp(peek().type, "COMMA") == 0) {
             match("COMMA");
@@ -412,7 +565,6 @@ int expectCondition() {
         recover();
         return 0;
     }
-    logTransition("condition", tokens[current].value, "parseExpression");
     parseExpression();
 
     if (strcmp(peek().type, "RIGHT_PAREN") != 0) {
@@ -664,20 +816,45 @@ void parseAssignment() {
     if (strcmp(peek().type, "IDENTIFIER") != 0) {
         printf("Syntax Error at Line %d: Assignment must start with identifier.\n", lines);
         errorCount++;
-        logTransition("parseAssignment", tokens[current].value, "errorRecovery");
         recover();
         return;
     }
+
     char namebuf[100];
     strncpy(namebuf, peek().value, sizeof(namebuf)-1);
     namebuf[sizeof(namebuf)-1] = '\0';
-    logTransition("parseAssignment", "identifier", "assign_op");
+
+    const char* targetType = getIdentifierType(namebuf);
+
     match("IDENTIFIER");
     match("ASSIGN_OP");
 
+    if (strcmp(peek().type, "RESERVED_WORD") == 0 && isTypeValue(peek().value) &&
+        strcmp(peekNext().type, "LEFT_PAREN") == 0 && isKeywordAt(2, "input")) {
 
-    if (strcmp(peek().type, "KEYWORD") == 0 && strcmp(peek().value, "input") == 0) {
-        logTransition("parseAssignment", "input", "string");
+        char castType[20];
+        strncpy(castType, peek().value, sizeof(castType)-1);
+        castType[sizeof(castType)-1] = '\0';
+
+        if (strcmp(targetType, "unknown") != 0 && strcmp(targetType, castType) != 0) {
+             printf("Syntax Error at Line %d: Type mismatch. Cannot assign %s(input) to variable '%s' of type %s.\n", lines, castType, namebuf, targetType);
+             errorCount++;
+        }
+
+        match("RESERVED_WORD");
+        match("LEFT_PAREN");
+        match("KEYWORD");
+        match("LEFT_PAREN");
+        match("STRING");
+        match("RIGHT_PAREN");
+        match("RIGHT_PAREN");
+    }
+    else if (strcmp(peek().type, "KEYWORD") == 0 && strcmp(peek().value, "input") == 0) {
+        if (strcmp(targetType, "unknown") != 0 && strcmp(targetType, "str") != 0 && strcmp(targetType, "char") != 0) {
+             printf("Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", lines, namebuf, targetType);
+             errorCount++;
+        }
+
         match("KEYWORD");
         match("LEFT_PAREN");
         match("STRING");
@@ -724,6 +901,7 @@ void parseArrayAssignment() {
         logTransition("parseArrayAssignment", tokens[current].value, "parseExpression");
         parseExpression();
     }
+    match("SEMICOLON");
 }
 
 void parseInputStatement() {
@@ -731,13 +909,30 @@ void parseInputStatement() {
     if (strcmp(peek().type, "IDENTIFIER") != 0) {
         printf("Syntax Error at Line %d: input assignment must start with identifier.\n", lines);
         errorCount++;
-        logTransition("parseInputStatement", tokens[current].value, "errorRecovery");
         recover();
         return;
     }
+
+    char namebuf[100];
+    strncpy(namebuf, peek().value, sizeof(namebuf)-1);
+    namebuf[sizeof(namebuf)-1] = '\0';
+
+    if (!isIdentifierDeclared(namebuf)) {
+        printf("Syntax Error at Line %d: Identifier '%s' is not declared.\n", lines, namebuf);
+        errorCount++;
+    }
+
+    const char* targetType = getIdentifierType(namebuf);
+
     match("IDENTIFIER");
     match("ASSIGN_OP");
     match("KEYWORD");
+
+    if (strcmp(targetType, "unknown") != 0 && strcmp(targetType, "str") != 0 && strcmp(targetType, "char") != 0) {
+        printf("Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", lines, namebuf, targetType);
+        errorCount++;
+    }
+
     match("LEFT_PAREN");
     match("STRING");
     match("RIGHT_PAREN");
@@ -760,6 +955,7 @@ void parseOutput() {
         while (strcmp(peek().type, "COMMA") == 0) {
             match("COMMA");
             if (strcmp(peek().type, "STRING") == 0) {
+                validateStringInterpolation(peek().value);
                 match("STRING");
             } else {
                 logTransition("parseOutputStatement", tokens[current].value, "parseExpression");
@@ -815,6 +1011,9 @@ void parseFunctionDef() {
                 recover();
                 return;
             }
+            char paramType[20];
+            strncpy(paramType, peek().value, sizeof(paramType)-1);
+            paramType[sizeof(paramType)-1] = '\0';
             match("RESERVED_WORD");
             if (strcmp(peek().type, "IDENTIFIER") != 0) {
                 printf("Syntax Error at Line %d: Expected parameter name.\n", lines);
@@ -823,7 +1022,7 @@ void parseFunctionDef() {
                 recover();
                 return;
             }
-            declareIdentifier(peek().value);
+            declareIdentifier(peek().value, paramType);
             match("IDENTIFIER");
 
             if (strcmp(peek().type, "COMMA") == 0) {
@@ -937,6 +1136,7 @@ void parseFactor() {
     } else if (strcmp(peek().type, "IDENTIFIER") == 0) {
 
         if (strcmp(peekNext().type, "LEFT_PAREN") == 0) {
+            logTransition("parseFactor", tokens[current].value, "parseFunctionCall");
             parseFunctionCall();
         } else {
             if (!isIdentifierDeclared(peek().value)) {
@@ -1025,7 +1225,6 @@ int main() {
 
     int i = 0;
     while (i < tokenCount && strcmp(tokens[i].type, "NEW_LINE") == 0) {
-        printf("TESTING TOKEN COUNT\n");
         lines++;
         i++;
     }
@@ -1035,7 +1234,13 @@ int main() {
 
     if (errorCount > 0) {
         printf("Parsing finished. Total errors: %d\n", errorCount);
+    } else {
+        printf("Parsing finished successfully.\n");
     }
 
+    if (braceBalance > 0) {
+        printf("Syntax Error: Missing closing brace '}'.\n");
+        errorCount++;
+    }
     return 0;
 }
