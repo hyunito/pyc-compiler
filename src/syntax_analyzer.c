@@ -4,7 +4,7 @@
 #define MAX_TOKENS 999999
 #define MAX_IDENTIFIERS 1000
 #define TRACK 1
-#define TRACK1 1
+#define TRACK1 0
 
 typedef struct {
     char type[50];
@@ -68,35 +68,6 @@ void advance() {
         current++;
     }
 
-}
-
-void recover() {
-    logTransition("errorRecovery", tokens[current].value, "dispatching");
-    if (isAtEnd()) return;
-    advance();
-
-    while (!isAtEnd()) {
-        if (strcmp(tokens[current].type, "SEMICOLON") == 0) {
-            advance();
-            return;
-        }
-        if (strcmp(tokens[current].type, "RIGHT_BRACE") == 0) {
-            return;
-        }
-        if (strcmp(tokens[current].type, "RESERVED_WORD") == 0 ||
-            strcmp(tokens[current].type, "IDENTIFIER") == 0) {
-            return;
-        }
-        if (strcmp(tokens[current].type, "KEYWORD") == 0) {
-            if (strcmp(tokens[current].value, "if") == 0 ||
-                strcmp(tokens[current].value, "for") == 0 ||
-                strcmp(tokens[current].value, "while") == 0 ||
-                strcmp(tokens[current].value, "return") == 0) {
-                return;
-            }
-        }
-        advance();
-    }
 }
 
 int match(const char* expected) {
@@ -223,6 +194,48 @@ int isConstTypeStart() {
     return strcmp(peek().type, "KEYWORD") == 0 &&
            strcmp(peek().value, "const") == 0;
 }
+
+void recover() {
+    logTransition("errorRecovery", tokens[current].value, "dispatching");
+    if (isAtEnd()) return;
+
+    advance();
+
+    while (!isAtEnd()) {
+
+        if (strcmp(peek().type, "SEMICOLON") == 0) {
+            advance();
+            return;
+        }
+
+        if (strcmp(peek().type, "RIGHT_BRACE") == 0) {
+            return;
+        }
+
+        if (strcmp(peek().type, "RESERVED_WORD") == 0 &&
+            isTypeValue(peek().value)) {
+            return;
+            }
+
+        if (strcmp(peek().type, "KEYWORD") == 0) {
+            if (strcmp(peek().value, "if") == 0 ||
+                strcmp(peek().value, "for") == 0 ||
+                strcmp(peek().value, "while") == 0 ||
+                strcmp(peek().value, "return") == 0 ||
+                strcmp(peek().value, "output") == 0 ||
+                strcmp(peek().value, "input") == 0) {
+                return;
+                }
+        }
+
+        if (strcmp(peek().type, "IDENTIFIER") == 0) {
+            return;
+        }
+
+        advance();
+    }
+}
+
 
 int findMain() {
     for(int i = 0; i < tokenCount - 3; i++) {
@@ -424,6 +437,7 @@ void parseStatement() {
     }
 
     if (isConstTypeStart()) {
+        logTransition("parseStatement", tokens[current].value, "parseDeclaration");
         parseDeclaration();
         if (TRACK1) printf("parseDeclaration: DONE\n");
         return;
@@ -505,6 +519,19 @@ void parseDeclaration() {
         recover();
         return;
     }
+
+    if (strcmp(peekAt(1).type, "LEFT_BRACKET") == 0) {
+        logTransition("parseDeclaration", tokens[current].value, "parseArrayAssignment");
+        char idname[100];
+        strncpy(idname, peek().value, sizeof(idname)-1);
+        idname[sizeof(idname)-1] = '\0';
+        declareIdentifier(idname, declaredType);
+        parseArrayAssignment();
+        if (TRACK1) printf("parseArrayAssignment: DONE\n");
+        return;
+    }
+
+
 
     while (1) {
         char idname[100];
@@ -808,8 +835,9 @@ void parseFor() {
             logTransition("parseFor", tokens[current].value, "parseExpression");
             parseExpression();
             if (TRACK1) printf("parseExpression: DONE\n");
+            if (TRACK1) printf("parseExpression: DONE\n");
             if (!isIdentifierDeclared(namebuf)) {
-                printf("Warning: Identifier '%s' assigned but not declared.\n", namebuf);
+                printf("Warning: Identifier '%s' at Line %d assigned but not declared.\n", namebuf, lines);
             }
         } else if (strcmp(peek().type, "IDENTIFIER") == 0 &&
                    (strcmp(peekNext().type, "INCREMENT") == 0 || strcmp(peekNext().type, "DECREMENT") == 0)) {
@@ -907,14 +935,15 @@ void parseAssignment() {
     match("SEMICOLON");
 
     if (!isIdentifierDeclared(namebuf)) {
-        printf("Warning: Identifier '%s' assigned but not declared.\n", namebuf);
+        printf("Warning: Identifier '%s' at Line %d assigned but not declared.\n", namebuf, lines);
     }
 }
 
 void parseArrayAssignment() {
     logTransition("parseArrayAssignment", tokens[current].value, "dispatching");
 
-    match("IDENTIFIER");
+    if (strcmp(peek().type, "IDENTIFIER") == 0) match("IDENTIFIER");
+
     match("LEFT_BRACKET");
 
     if (strcmp(peek().type, "RIGHT_BRACKET") != 0) {
@@ -1215,7 +1244,7 @@ void parseFactor() {
         }
         match("RIGHT_PAREN");
     } else if (strcmp(peek().type, "RESERVED_WORD") == 0 &&
-               (strcmp(peek().value, "True") == 0 || strcmp(peek().value, "False") == 0)) {
+               (strcmp(peek().value, "True") == 0 || strcmp(peek().value, "False") == 0 || strcmp(peek().value, "null") == 0)) {
         advance();
     } else {
         printf("Syntax Error at Line %d: Missing operand - Expected NUMBER, IDENTIFIER, STRING, or '(' but got %s (%s)\n", lines,
