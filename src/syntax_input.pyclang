@@ -1,5 +1,7 @@
 #This is a single line comment
-void main() {
+
+main() {
+    int x = 10, y = 5;
     str a;
     int b, c;
     float result;
@@ -7,16 +9,13 @@ void main() {
     bool flag;
     
     a = input("Enter first number: ");
-    
     b = 42;
-    
     c = b;
-    
     result = b * 2 - 5;
     
     output("=== PyC Language Test ===");
     
-    output(result);
+    output("{result}");
     
     output("The result is: {result}");
     
@@ -37,7 +36,7 @@ void main() {
     } else {
         message = "Low value";
     }
-    output(message);
+    output("{message}");
     
     int i = 0;
     while (i < 5) do {
