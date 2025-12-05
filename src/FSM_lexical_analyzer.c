@@ -57,7 +57,7 @@ int isSymbol(char symbol1) {
 }
 
 int main() {
-    char filename[] = "full_input.pyclang";
+    char filename[] = "syntax_input.pyclang";
 
     int len = 0;
     while (filename[len] != '\0') len++;
@@ -1429,26 +1429,36 @@ int main() {
                 }
 
             case 114:
-                // String literal state
                 if (c == '"') {
                     buffer[idx] = '\0';
-                    printf("STRING(%s)\n", buffer);
-                    fprintf(out, "STRING(%s)\n", buffer);
+
+                    // Check if the string contains interpolation
+                    if (strchr(buffer, '{') != NULL && strchr(buffer, '}') != NULL) {
+                        printf("STRING_INTERP(%s)\n", buffer);
+                        fprintf(out, "STRING_INTERP(%s)\n", buffer);
+                    } else {
+                        printf("STRING(%s)\n", buffer);
+                        fprintf(out, "STRING(%s)\n", buffer);
+                    }
+
                     idx = 0;
                     state = 0;
                     break;
-                } else if (c == '\n') {
+                }
+                else if (c == '\n') {
                     buffer[idx] = '\0';
                     printf("ERROR(Unterminated string: %s)\n", buffer);
                     fprintf(out, "ERROR(Unterminated string: %s)\n", buffer);
                     idx = 0;
                     state = 0;
                     break;
-                } else {
+                }
+                else {
                     buffer[idx++] = c;
                     state = 114;
                     break;
                 }
+
 
             case 115:
                 // Character literal state
