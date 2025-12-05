@@ -3,7 +3,7 @@
 
 #define MAX_TOKENS 999999
 #define MAX_IDENTIFIERS 1000
-#define TRACK 1
+#define TRACK 0
 #define TRACK1 0
 
 typedef struct {
@@ -244,13 +244,11 @@ int findMain() {
             strcmp(tokens[i+1].type, "LEFT_PAREN") == 0 &&
             strcmp(tokens[i+2].type, "RIGHT_PAREN") == 0) {
 
-            // Skip NEW_LINE tokens after the closing paren
             int j = i + 3;
             while (j < tokenCount && strcmp(tokens[j].type, "NEW_LINE") == 0) {
                 j++;
             }
 
-            // Check if next non-newline token is begin or {
             if (j < tokenCount &&
                 (strcmp(tokens[j].type, "NOISE_WORD") == 0 ||
                  strcmp(tokens[j].type, "LEFT_BRACE") == 0)) {
@@ -837,7 +835,8 @@ void parseFor() {
             if (TRACK1) printf("parseExpression: DONE\n");
             if (TRACK1) printf("parseExpression: DONE\n");
             if (!isIdentifierDeclared(namebuf)) {
-                printf("Warning: Identifier '%s' at Line %d assigned but not declared.\n", namebuf, lines);
+                errorCount++;
+                printf("Syntax Error at Line %d: Identifier '%s' assigned but not declared.\n", lines, namebuf);
             }
         } else if (strcmp(peek().type, "IDENTIFIER") == 0 &&
                    (strcmp(peekNext().type, "INCREMENT") == 0 || strcmp(peekNext().type, "DECREMENT") == 0)) {
@@ -935,7 +934,8 @@ void parseAssignment() {
     match("SEMICOLON");
 
     if (!isIdentifierDeclared(namebuf)) {
-        printf("Warning: Identifier '%s' at Line %d assigned but not declared.\n", namebuf, lines);
+        errorCount++;
+        printf("Syntax Error at Line %d: Identifier '%s' assigned but not declared.\n", lines, namebuf);
     }
 }
 
@@ -1006,41 +1006,55 @@ void parseInputStatement() {
     }
 
     match("LEFT_PAREN");
-    match("STRING");
+    if (strcmp(peek().type, "STRING") == 0)
+        match("STRING");
+    else if (strcmp(peek().type, "STRING_INTERP") == 0)
+        match("STRING_INTERP");
+    else {
+        printf("Syntax Error at Line %d: input prompt must be a string literal.\n", lines);
+        errorCount++;
+        recover();
+        return;
+    }
     match("RIGHT_PAREN");
     match("SEMICOLON");
 }
 
 void parseOutput() {
     logTransition("parseOutput", tokens[current].value, "dispatching");
+
     match("KEYWORD");
     match("LEFT_PAREN");
 
-    if (strcmp(peek().type, "RIGHT_PAREN") != 0) {
-        if (strcmp(peek().type, "STRING") == 0) {
-            match("STRING");
-        } else {
-            logTransition("parseOutputStatement", tokens[current].value, "parseExpression");
-            parseExpression();
-            if (TRACK1) printf("parseExpression: DONE\n");
-        }
+    if (strcmp(peek().type, "STRING") != 0 && strcmp(peek().type, "STRING_INTERP") != 0) {
+        errorCount++;
+        printf("Syntax Error at Line %d: Output statement must start with a string literal.\n", lines);
+        logTransition("parseOutput", tokens[current].value, "errorRecovery");
+        recover();
+        return;
+    }
 
-        while (strcmp(peek().type, "COMMA") == 0) {
-            match("COMMA");
-            if (strcmp(peek().type, "STRING") == 0) {
-                validateStringInterpolation(peek().value);
-                match("STRING");
-            } else {
-                logTransition("parseOutputStatement", tokens[current].value, "parseExpression");
-                parseExpression();
-                if (TRACK1) printf("parseExpression: DONE\n");
-            }
-        }
+    validateStringInterpolation(peek().value);
+    if (strcmp(peek().type, "STRING_INTERP") == 0) {
+        match("STRING_INTERP");
+    }
+    else {
+        match("STRING");
+    }
+
+
+    if (strcmp(peek().type, "COMMA") == 0) {
+        errorCount++;
+        printf("Syntax Error at Line %d: Output statement cannot accept multiple arguments.\n", lines);
+        logTransition("parseOutput", tokens[current].value, "errorRecovery");
+        recover();
+        return;
     }
 
     match("RIGHT_PAREN");
     match("SEMICOLON");
 }
+
 
 void parseFunctionCall() {
     logTransition("parseFunctionCall", tokens[current].value, "dispatching");
@@ -1059,7 +1073,7 @@ void parseFunctionCall() {
     }
     match("RIGHT_PAREN");
 }
-//checkpoint
+
 void parseFunctionDef() {
     logTransition("parseFunctionDef", tokens[current].value, "dispatching");
     match("RESERVED_WORD");
@@ -1310,10 +1324,16 @@ int main() {
     fclose(fp);
 
     int i = 0;
-    while (i < tokenCount && strcmp(tokens[i].type, "NEW_LINE") == 0) {
-        lines++;
+    while (i < tokenCount){
+        if (strcmp(tokens[i].value, "main") != 0) {
+            if (strcmp(tokens[i].type, "NEW_LINE") == 0) {
+                lines++;
+            }
+        } else {
+            break;
+        }
         i++;
-    }
+       }
     current = i;
 
     parseProgram();
