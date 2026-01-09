@@ -3,8 +3,8 @@
 
 #define MAX_TOKENS 999999
 #define MAX_IDENTIFIERS 1000
-#define TRACK 0
-#define TRACK1 0
+#define TRACK 1
+#define TRACK1 1
 
 typedef struct {
     char type[50];
@@ -15,7 +15,9 @@ typedef struct {
     char name[100];
     char type[20];
     int isDeclared;
+    char value[256];   // <-- ADD THIS
 } Identifier;
+
 
 Token tokens[MAX_TOKENS];
 int tokenCount = 0;
@@ -48,6 +50,18 @@ Token peekAt(int offset) {
 
 Token peekNext() { return peekAt(1); }
 Token peekNextNext() { return peekAt(2); }
+
+const char* getIdentifierValue(const char* name) {
+    for (int i = 0; i < symbolCount; i++) {
+        if (strcmp(symbolTable[i].name, name) == 0) {
+            if (symbolTable[i].value[0] == '\0')
+                return NULL;
+            return symbolTable[i].value;
+        }
+    }
+    return NULL;
+}
+
 
 void logTransition(const char* from, const char* input, const char* to) {
     if (TRACK) printf("%s --%s--> %s\n", from, input, to);
@@ -990,7 +1004,7 @@ void parseInputStatement() {
     namebuf[sizeof(namebuf)-1] = '\0';
 
     if (!isIdentifierDeclared(namebuf)) {
-        printf("Syntax Error at Line %d: Identifier '%s' is not declared.\n", lines, namebuf);
+        printf("Semantic Error at Line %d: Identifier '%s' is not declared.\n", lines, namebuf);
         errorCount++;
     }
 
@@ -1036,11 +1050,42 @@ void parseOutput() {
 
     validateStringInterpolation(peek().value);
     if (strcmp(peek().type, "STRING_INTERP") == 0) {
+        char temp[256];
+        strcpy(temp, peek().value);
+        char *start = strchr(temp, '{');
+        char *end   = strchr(temp, '}');
+
+        if (start && end && end > start) {
+
+            char varname[100];
+            strncpy(varname, start + 1, end - start - 1);
+            varname[end - start - 1] = '\0';
+
+            const char *val = getIdentifierValue(varname);
+            if (!val) val = "(undefined)";
+
+            char finalOut[256];
+            int prefixLen = start - temp;
+
+            strncpy(finalOut, temp, prefixLen);
+            finalOut[prefixLen] = '\0';
+            strcat(finalOut, val);
+            strcat(finalOut, end + 1);
+
+            //if (TRACK1) printf("%s\n", finalOut);
+        } else {
+            // No valid interpolation
+            //if (TRACK1) printf("%s\n", temp);
+        }
+
         match("STRING_INTERP");
     }
     else {
+        // NORMAL STRING (no interpolation)
+        //if (TRACK1) printf("%s\n", peek().value);
         match("STRING");
     }
+
 
 
     if (strcmp(peek().type, "COMMA") == 0) {
@@ -1054,7 +1099,6 @@ void parseOutput() {
     match("RIGHT_PAREN");
     match("SEMICOLON");
 }
-
 
 void parseFunctionCall() {
     logTransition("parseFunctionCall", tokens[current].value, "dispatching");
@@ -1229,7 +1273,8 @@ void parseFactor() {
     }
     if (strcmp(peek().type, "NUMBER") == 0 ||
         strcmp(peek().type, "STRING") == 0 ||
-        strcmp(peek().type, "CHAR") == 0) {
+        strcmp(peek().type, "CHAR") == 0 ||
+        strcmp(peek().type, "STRING_INTERP") == 0) {
         advance();
     } else if (strcmp(peek().type, "IDENTIFIER") == 0) {
 
@@ -1239,7 +1284,7 @@ void parseFactor() {
             if (TRACK1) printf("parseFunctionCall: DONE\n");
         } else {
             if (!isIdentifierDeclared(peek().value)) {
-                printf("Syntax Error at Line %d: Identifier '%s' is not declared\n", lines, peek().value);
+                printf("Semantic Error at Line %d: Identifier '%s' is not declared\n", lines, peek().value);
                 errorCount++;
             }
             match("IDENTIFIER");
@@ -1343,11 +1388,6 @@ int main() {
         printf("Parsing finished. Total errors: %d\n", errorCount);
     } else {
         printf("Parsing finished successfully.\n");
-    }
-
-    if (braceBalance > 0) {
-        printf("Syntax Error: Missing closing brace '}'.\n");
-        errorCount++;
     }
     return 0;
 }

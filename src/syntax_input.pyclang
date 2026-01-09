@@ -7,6 +7,8 @@ main() {
     float result;
     str message;
     bool flag;
+
+    add();
     
     a = input("Enter first number: ");
     b = 42;
