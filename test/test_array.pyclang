@@ -1,2 +1,0 @@
-int nums[3] = {1, 2, 3};
-output("Second number: {nums[1]}");

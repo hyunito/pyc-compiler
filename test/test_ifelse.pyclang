@@ -1,8 +1,0 @@
-bool floating = True;
-
-if (a > b) {
-    output("A is greater");
-}
-else {
-    output("B is greater or equal");
-}
