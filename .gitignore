@@ -6,6 +6,7 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
-/test/
+/test
 /*.exe
 /.idea
+/src/*.exe

@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
 #define MAX_IDENTIFIERS 1000
 #define TRACK 1
 #define TRACK1 1
@@ -15,17 +14,19 @@ typedef struct {
     char name[100];
     char type[20];
     int isDeclared;
-    char value[256];   // <-- ADD THIS
+    char value[256];
 } Identifier;
 
 Token peek();
 Token peekNext();
 Token peekAt(int offset);
+Token getNextToken();
 void advance();
 int isAtEnd();
 void recover();
+FILE *tokenFile;
+FILE *out;
 
-Token getNextToken();
 
 Token lookahead[3];
 void initLookahead() {
@@ -63,7 +64,6 @@ Token peekAt(int offset) {
 
 Token peekNext() {  return lookahead[1]; }
 
-
 const char* getIdentifierValue(const char* name) {
     for (int i = 0; i < symbolCount; i++) {
         if (strcmp(symbolTable[i].name, name) == 0) {
@@ -75,9 +75,11 @@ const char* getIdentifierValue(const char* name) {
     return NULL;
 }
 
-
 void logTransition(const char* from, const char* input, const char* to) {
-    if (TRACK) printf("%s --%s--> %s\n", from, input, to);
+    if (TRACK) {
+        printf("%s --%s--> %s\n", from, input, to);
+        fprintf(out, "%s --%s--> %s\n", from, input, to);
+    }
 }
 
 void advance() {
@@ -94,6 +96,7 @@ int match(const char* expected) {
             braceBalance--;
             if (braceBalance < 0) {
                 printf("Syntax Error at Line %d: Extra closing brace '}'.\n", lines);
+                fprintf(out, "Syntax Error at Line %d: Extra closing brace '}'.\n", lines);
                 errorCount++;
                 braceBalance = 0;
             }
@@ -102,8 +105,8 @@ int match(const char* expected) {
         advance();
         return 1;
     }
-    printf("Syntax Error at Line %d: Expected %s but got %s (%s)\n", lines,
-           expected, peek().type, peek().value);
+    printf("Syntax Error at Line %d: Expected %s but got %s (%s)\n", lines, expected, peek().type, peek().value);
+    fprintf(out, "Syntax Error at Line %d: Expected %s but got %s (%s)\n", lines, expected, peek().type, peek().value);
     errorCount++;
     recover();
     return 0;
@@ -113,6 +116,7 @@ void declareIdentifier(const char* name, const char* type) {
     for (int i = 0; i < symbolCount; i++) {
         if (strcmp(symbolTable[i].name, name) == 0) {
             printf("Syntax Error at Line %d: Identifier '%s' is already declared.\n", lines, name);
+            fprintf(out, "Syntax Error at Line %d: Identifier '%s' is already declared.\n", lines, name);
             errorCount++;
             return;
         }
@@ -169,6 +173,7 @@ void validateStringInterpolation(const char* content) {
                 if (bufIdx > 0) {
                     if (!isIdentifierDeclared(buffer)) {
                         printf("Syntax Error at Line %d: Identifier '%s' inside string interpolation is not declared.\n", lines, buffer);
+                        fprintf(out, "Syntax Error at Line %d: Identifier '%s' inside string interpolation is not declared.\n", lines, buffer);
                         errorCount++;
                     }
                 }
@@ -281,6 +286,7 @@ void parseProgram() {
     logTransition("parseProgram", peek().value, "Finding main()");
     if (!isKeyword("main")) {
         printf("Syntax Error: Program must start with main()\n");
+        fprintf(out, "Syntax Error: Program must start with main()\n");
         return;
     }
     match("KEYWORD");
@@ -289,7 +295,10 @@ void parseProgram() {
 
     logTransition("parseProgram", peek().value, "parseBlock");
     parseBlock();
-    if (TRACK1) printf("parseBlock: DONE\n");
+    if (TRACK1) {
+        printf("parseBlock: DONE\n");
+        fprintf(out, "parseBlock: DONE\n");
+    }
 }
 
 void parseBlock() {
@@ -308,8 +317,8 @@ void parseBlock() {
     }
 
     if (!hasBegin && !hasBrace) {
-        printf("Syntax Error at Line %d: Expected '{' or 'begin' to start block but got %s (%s)\n",
-               lines, peek().type, peek().value);
+        printf("Syntax Error at Line %d: Expected '{' or 'begin' to start block but got %s (%s)\n", lines, peek().type, peek().value);
+        fprintf(out, "Syntax Error at Line %d: Expected '{' or 'begin' to start block but got %s (%s)\n", lines, peek().type, peek().value);
         errorCount++;
         recover();
         return;
@@ -324,7 +333,10 @@ void parseBlock() {
         }
         logTransition("parseBlock", peek().value, "parseStatement");
         parseStatement();
-        if (TRACK1) printf("parseStatement: DONE\n");
+        if (TRACK1) {
+            printf("parseStatement: DONE\n");
+            fprintf(out, "parseStatement: DONE\n");
+        }
     }
 
     if (hasBrace) {
@@ -345,20 +357,29 @@ void parseStatement() {
     if (isKeyword("if")) {
         logTransition("parseStatement", peek().value, "parseIf");
         parseIf();
-        if (TRACK1) printf("parseIf: DONE\n");
+        if (TRACK1) {
+            printf("parseIf: DONE\n");
+            fprintf(out, "parseIf: DONE\n");
+        }
         return;
     }
     if (isKeyword("while")) {
         logTransition("parseStatement", peek().value, "parseWhile");
         parseWhile();
-        if (TRACK1) printf("parseWhile: DONE\n");
+        if (TRACK1) {
+            printf("parseWhile: DONE\n");
+            fprintf(out, "parseWhile: DONE\n");
+        }
         return;
     }
 
     if (isKeyword("for")) {
         logTransition("parseStatement", peek().value, "parseFor");
         parseFor();
-        if (TRACK1) printf("parseFor: DONE\n");
+        if (TRACK1) {
+            printf("parseFor: DONE\n");
+            fprintf(out, "parseFor: DONE\n");
+        }
         return;
     }
 
@@ -380,7 +401,10 @@ void parseStatement() {
         if (strcmp(peek(). type, "SEMICOLON") != 0) {
             logTransition("parseStatement", peek().value, "parseExpression");
             parseExpression();
-            if (TRACK1) printf("parseExpression: DONE\n");
+            if (TRACK1) {
+                printf("parseExpression: DONE\n");
+                fprintf(out, "parseExpression: DONE\n");
+            }
         }
         match("SEMICOLON");
         return;
@@ -389,7 +413,10 @@ void parseStatement() {
     if (isKeyword("output")) {
         logTransition("parseStatement", peek().value, "parseOutput");
         parseOutput();
-        if (TRACK1) printf("parseOutput: DONE\n");
+        if (TRACK1) {
+            printf("parseOutput: DONE\n");
+            fprintf(out, "parseOutput: DONE\n");
+        }
         return;
     }
 
@@ -398,7 +425,10 @@ void parseStatement() {
         isKeywordAt(2, "input")) {
         logTransition("parseStatement", peek().value, "parseInput");
         parseInputStatement();
-        if (TRACK1) printf("parseInput: DONE\n");
+        if (TRACK1) {
+            printf("parseInput: DONE\n");
+            fprintf(out, "parseInput: DONE\n");
+        }
         return;
     }
 
@@ -408,7 +438,10 @@ void parseStatement() {
         strcmp(peekAt(2).type, "LEFT_PAREN") == 0) {
         logTransition("parseStatement", peek().value, "parseFunctionDef");
         parseFunctionDef();
-        if (TRACK1) printf("parseFunctionDef: DONE\n");
+        if (TRACK1) {
+            printf("parseFunctionDef: DONE\n");
+            fprintf(out, "parseFunctionDef: DONE\n");
+        }
         return;
     }
 
@@ -416,34 +449,50 @@ void parseStatement() {
         match("NOISE_WORD");
         logTransition("parseStatement", peek().value, "parseBlock");
         parseBlock();
-        if (TRACK1) printf("parseBlock: DONE\n");
+        if (TRACK1) {
+            printf("parseBlock: DONE\n");
+            fprintf(out, "parseBlock: DONE\n");
+        }
         return;
     }
     if (strcmp(peek().type, "LEFT_BRACE") == 0) {
         logTransition("parseStatement", peek().value, "parseBlock");
         parseBlock();
-        if (TRACK1) printf("parseBlock: DONE\n");
+        if (TRACK1) {
+            printf("parseBlock: DONE\n");
+            fprintf(out, "parseBlock: DONE\n");
+        }
         return;
     }
 
     if (isConstTypeStart()) {
         logTransition("parseStatement", peek().value, "parseDeclaration");
         parseDeclaration();
-        if (TRACK1) printf("parseDeclaration: DONE\n");
+        if (TRACK1) {
+            printf("parseDeclaration: DONE\n");
+            fprintf(out, "parseDeclaration: DONE\n");
+        }
         return;
     }
 
     if (strcmp(peek().type, "RESERVED_WORD") == 0 && isTypeValue(peek().value)) {
         logTransition("parseStatement", peek().value, "parseDeclaration");
         parseDeclaration();
-        if (TRACK1) printf("parseDeclaration: DONE\n");
+        if (TRACK1) {
+            printf("parseDeclaration: DONE\n");
+            fprintf(out, "parseDeclaration: DONE\n");
+        }
         return;
     }
 
     if (strcmp(peek().type, "IDENTIFIER") == 0 && strcmp(peekNext().type, "LEFT_PAREN") == 0) {
         logTransition("parseStatement", peek().value, "parseFunctionCall");
         parseFunctionCall();
-        if (TRACK1) printf("parseFunctionCall: DONE\n");
+        if (TRACK1) {
+            printf("parseFunctionCall: DONE\n");
+            fprintf(out, "parseFunctionCall: DONE\n");
+        }
+
         match("SEMICOLON");
         return;
     }
@@ -451,7 +500,10 @@ void parseStatement() {
     if (strcmp(peek().type, "IDENTIFIER") == 0 && strcmp(peekNext().type, "LEFT_BRACKET") == 0) {
         logTransition("parseStatement", peek().value, "parseArrayAssignment");
         parseArrayAssignment();
-        if (TRACK1) printf("parseArrayAssignment: DONE\n");
+        if (TRACK1) {
+            printf("parseArrayAssignment: DONE\n");
+            fprintf(out, "parseArrayAssignment: DONE\n");
+        }
         match("SEMICOLON");
         return;
     }
@@ -474,7 +526,10 @@ void parseStatement() {
     }
     if (strcmp(peek().type, "IDENTIFIER") == 0 && strcmp(peekNext().type, "ASSIGN_OP") == 0) {
         logTransition("parseStatement", peek().value, "parseAssignment");
-        if (TRACK1) printf("parseAssignment: DONE\n");
+        if (TRACK1) {
+            printf("parseAssignment: DONE\n");
+            fprintf(out, "parseAssignment: DONE\n");
+        }
         parseAssignment();
         return;
     }
@@ -483,6 +538,7 @@ void parseStatement() {
     }
 
     printf("Syntax Error at Line %d: Unknown statement starting with %s (%s)\n",lines, peek().type, peek().value);
+    fprintf(out, "Syntax Error at Line %d: Unknown statement starting with %s (%s)\n",lines, peek().type, peek().value);
     errorCount++;
     logTransition("parseStatement", peek().value, "errorRecovery");
     recover();
@@ -505,6 +561,7 @@ void parseDeclaration() {
 
     if (strcmp(peek().type, "IDENTIFIER") != 0) {
         printf("Syntax Error at Line %d: Expected identifier in declaration.\n", lines);
+        fprintf(out, "Syntax Error at Line %d: Expected identifier in declaration.\n", lines);
         errorCount++;
         recover();
         return;
@@ -517,7 +574,10 @@ void parseDeclaration() {
         idname[sizeof(idname)-1] = '\0';
         declareIdentifier(idname, declaredType);
         parseArrayAssignment();
-        if (TRACK1) printf("parseArrayAssignment: DONE\n");
+        if (TRACK1) {
+            printf("parseArrayAssignment: DONE\n");
+            fprintf(out, "parseArrayAssignment: DONE\n");
+        }
         return;
     }
 
@@ -543,6 +603,7 @@ void parseDeclaration() {
 
                 if (strcmp(declaredType, castType) != 0) {
                     printf("Syntax Error at Line %d: Type mismatch. Cannot assign %s(input) to variable of type %s.\n", lines, castType, declaredType);
+                    fprintf(out, "Syntax Error at Line %d: Type mismatch. Cannot assign %s(input) to variable of type %s.\n", lines, castType, declaredType);
                     errorCount++;
                 }
 
@@ -559,6 +620,7 @@ void parseDeclaration() {
             else if (isKeyword("input")) {
                 if (strcmp(declaredType, "str") != 0 && strcmp(declaredType, "char") != 0) {
                      printf("Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable is type %s.\n", lines, declaredType);
+                    fprintf(out, "Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable is type %s.\n", lines, declaredType);
                      errorCount++;
                 }
 
@@ -570,7 +632,10 @@ void parseDeclaration() {
             else {
                 logTransition("ASSIGN_OP", peek().value, "parseExpression");
                 parseExpression();
-                if (TRACK1) printf("parseExpression: DONE\n");
+                if (TRACK1) {
+                    printf("parseExpression: DONE\n");
+                    fprintf(out, "parseExpression: DONE\n");
+                }
             }
         }
 
@@ -586,8 +651,8 @@ void parseDeclaration() {
 
 int expectCondition() {
     if (strcmp(peek().type, "LEFT_PAREN") != 0) {
-        printf("Syntax Error at Line %d: Expected '(' to start condition but got %s (%s)\n", lines,
-               peek().type, peek().value);
+        printf("Syntax Error at Line %d: Expected '(' to start condition but got %s (%s)\n", lines, peek().type, peek().value);
+        fprintf(out, "Syntax Error at Line %d: Expected '(' to start condition but got %s (%s)\n", lines, peek().type, peek().value);
         errorCount++;
         recover();
         return 0;
@@ -596,6 +661,7 @@ int expectCondition() {
 
     if (isAtEnd() || strcmp(peek().type, "RIGHT_PAREN") == 0) {
         printf("Syntax Error at Line %d: Expected condition expression inside parentheses.\n", lines);
+        fprintf(out, "Syntax Error at Line %d: Expected condition expression inside parentheses.\n", lines);
         errorCount++;
         recover();
         return 0;
@@ -603,8 +669,8 @@ int expectCondition() {
     parseExpression();
 
     if (strcmp(peek().type, "RIGHT_PAREN") != 0) {
-        printf("Syntax Error at Line %d: Expected ')' to close condition but got %s (%s)\n", lines,
-               peek().type, peek().value);
+        printf("Syntax Error at Line %d: Expected ')' to close condition but got %s (%s)\n", lines, peek().type, peek().value);
+        fprintf(out, "Syntax Error at Line %d: Expected ')' to close condition but got %s (%s)\n", lines, peek().type, peek().value);
         errorCount++;
         recover();
         return 0;
@@ -617,6 +683,7 @@ void parseIf() {
     logTransition("parseIf", "if", "condition");
     if (strcmp(peek().type, "KEYWORD") != 0 || strcmp(peek().value, "if") != 0) {
         printf("Internal Error: parseIf called but current token is %s (%s)\n", peek().type, peek().value);
+        fprintf(out, "Internal Error: parseIf called but current token is %s (%s)\n", peek().type, peek().value);
         errorCount++;
         logTransition("parseIf", peek().value, "errorRecovery");
         recover();
@@ -628,11 +695,17 @@ void parseIf() {
         if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
             logTransition("parseIf", peek().value, "parseBlock");
             parseBlock();
-            if (TRACK1) printf("parseBlock: DONE\n");
+            if (TRACK1) {
+                printf("parseBlock: DONE\n");
+                fprintf(out, "parseBlock: DONE\n");
+            }
         } else {
             logTransition("parseIf", peek().value, "parseStatement");
             parseStatement();
-            if (TRACK1) printf("parseStatement: DONE\n");
+            if (TRACK1) {
+                printf("parseStatement: DONE\n");
+                fprintf(out, "parseStatement: DONE\n");
+            }
         }
         return;
     }
@@ -642,11 +715,17 @@ void parseIf() {
     if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
         logTransition("parseIf", peek().value, "parseBlock");
         parseBlock();
-        if (TRACK1) printf("parseBlock: DONE\n");
+        if (TRACK1) {
+            printf("parseBlock: DONE\n");
+            fprintf(out, "parseBlock: DONE\n");
+        }
     } else {
         logTransition("parseIf", peek().value, "parseStatement");
         parseStatement();
-        if (TRACK1) printf("parseStatement: DONE\n");
+        if (TRACK1) {
+            printf("parseStatement: DONE\n");
+            fprintf(out, "parseStatement: DONE\n");
+        }
     }
 
     while (isKeyword("else")) {
@@ -659,11 +738,17 @@ void parseIf() {
                 if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
                     logTransition("parseIf", "condition", "parseBlock");
                     parseBlock();
-                    if (TRACK1) printf("parseBlock: DONE\n");
+                    if (TRACK1) {
+                        printf("parseBlock: DONE\n");
+                        fprintf(out, "parseBlock: DONE\n");
+                    }
                 } else {
                     logTransition("parseIf", "condition", "parseStatement");
                     parseStatement();
-                    if (TRACK1) printf("parseStatement: DONE\n");
+                    if (TRACK1) {
+                        printf("parseStatement: DONE\n");
+                        fprintf(out, "parseStatement: DONE\n");
+                    }
                 }
                 break;
             }
@@ -672,11 +757,17 @@ void parseIf() {
             if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
                 logTransition("parseIf", peek().value, "parseBlock");
                 parseBlock();
-                if (TRACK1) printf("parseBlock: DONE\n");
+                if (TRACK1) {
+                    printf("parseBlock: DONE\n");
+                    fprintf(out, "parseBlock: DONE\n");
+                }
             } else {
                 logTransition("parseIf", peek().value, "parseStatement");
                 parseStatement();
-                if (TRACK1) printf("parseStatement: DONE\n");
+                if (TRACK1) {
+                    printf("parseStatement: DONE\n");
+                    fprintf(out, "parseStatement: DONE\n");
+                }
             }
         } else {
             logTransition("parseIf", "else", "Block | Statement");
@@ -684,11 +775,17 @@ void parseIf() {
             if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
                 logTransition("parseIf", peek().value, "parseBlock");
                 parseBlock();
-                if (TRACK1) printf("parseBlock: DONE\n");
+                if (TRACK1) {
+                    printf("parseBlock: DONE\n");
+                    fprintf(out, "parseBlock: DONE\n");
+                }
             } else {
                 logTransition("parseIf", peek().value, "parseStatement");
                 parseStatement();
-                if (TRACK1) printf("parseStatement: DONE\n");
+                if (TRACK1) {
+                    printf("parseStatement: DONE\n");
+                    fprintf(out, "parseStatement: DONE\n");
+                }
             }
             break;
         }
@@ -698,6 +795,7 @@ void parseIf() {
 void parseWhile() {
     if (strcmp(peek().type, "KEYWORD") != 0 || strcmp(peek().value, "while") != 0) {
         printf("Internal Error: parseWhile called but current token is %s (%s)\n", peek().type, peek().value);
+        fprintf(out, "Internal Error: parseWhile called but current token is %s (%s)\n", peek().type, peek().value);
         errorCount++;
         logTransition("parseWhile", peek().value, "errorRecovery");
         recover();
@@ -710,11 +808,17 @@ void parseWhile() {
         if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
             logTransition("parseWhile", peek().value, "parseBlock");
             parseBlock();
-            if (TRACK1) printf("parseBlock: DONE\n");
+            if (TRACK1) {
+                printf("parseBlock: DONE\n");
+                fprintf(out, "parseBlock: DONE\n");
+            }
         } else {
             logTransition("parseWhile", peek().value, "parseStatement");
             parseStatement();
-            if (TRACK1) printf("parseStatement: DONE\n");
+            if (TRACK1) {
+                printf("parseStatement: DONE\n");
+                fprintf(out, "parseStatement: DONE\n");
+            }
         }
         return;
     }
@@ -723,11 +827,17 @@ void parseWhile() {
         if (isNoise("do")) match("NOISE_WORD");
         logTransition("parseWhile", peek().value, "parseBlock");
         parseBlock();
-        if (TRACK1) printf("parseBlock: DONE\n");
+        if (TRACK1) {
+            printf("parseBlock: DONE\n");
+            fprintf(out, "parseBlock: DONE\n");
+        }
     } else {
         logTransition("parseWhile", peek().value, "parseStatement");
         parseStatement();
-        if (TRACK1) printf("parseStatement: DONE\n");
+        if (TRACK1) {
+            printf("parseStatement: DONE\n");
+            fprintf(out, "parseStatement: DONE\n");
+        }
     }
 }
 
@@ -735,6 +845,7 @@ void parseFor() {
     logTransition("parseFor", peek().value, "dispatching");
     if (strcmp(peek().type, "KEYWORD") != 0 || strcmp(peek().value, "for") != 0) {
         printf("Internal Error: parseFor called but current token is %s (%s)\n", peek().type, peek().value);
+        fprintf(out, "Internal Error: parseFor called but current token is %s (%s)\n", peek().type, peek().value);
         errorCount++;
         logTransition("parseFor", peek().value, "errorRecovery");
         recover();
@@ -744,6 +855,7 @@ void parseFor() {
 
     if (strcmp(peek().type, "LEFT_PAREN") != 0) {
         printf("Syntax Error at Line %d: Expected '(' after for but got %s (%s)\n", lines, peek().type, peek().value);
+        fprintf(out, "Syntax Error at Line %d: Expected '(' after for but got %s (%s)\n", lines, peek().type, peek().value);
         errorCount++;
         logTransition("parseFor", peek().value, "errorRecovery");
         recover();
@@ -759,24 +871,33 @@ void parseFor() {
     } else if (strcmp(peek().type, "RESERVED_WORD") == 0 && isTypeValue(peek().value)) {
         logTransition("parseFor", peek().value, "parseDeclaration");
         parseDeclaration();
-        if (TRACK1) printf("parseDeclaration: DONE\n");
+        if (TRACK1) {
+            printf("parseDeclaration: DONE\n");
+            fprintf(out, "parseDeclaration: DONE\n");
+        }
         initConsumedSemicolon = 1;
     } else {
         if (strcmp(peek().type, "IDENTIFIER") == 0 && strcmp(peekNext().type, "ASSIGN_OP") == 0) {
             logTransition("parseFor", peek().value, "parseAssignment");
             parseAssignment();
-            if (TRACK1) printf("parseAssigment: DONE\n");
+            if (TRACK1) {
+                printf("parseAssigment: DONE\n");
+                fprintf(out, "parseAssigment: DONE\n");
+            }
             initConsumedSemicolon = 1;
         } else {
             logTransition("parseFor", "condition", "parseExpression");
             parseExpression();
-            if (TRACK1) printf("parseExpression: DONE\n");
+            if (TRACK1) {
+                printf("parseExpression: DONE\n");
+                fprintf(out, "parseExpression: DONE\n");
+            }
             if (strcmp(peek().type, "SEMICOLON") == 0) {
                 match("SEMICOLON");
                 initConsumedSemicolon = 1;
             } else {
-                printf("Syntax Error at Line %d: Expected ';' after for-initialization but got %s (%s)\n", lines,
-                       peek().type, peek().value);
+                printf("Syntax Error at Line %d: Expected ';' after for-initialization but got %s (%s)\n", lines, peek().type, peek().value);
+                fprintf(out, "Syntax Error at Line %d: Expected ';' after for-initialization but got %s (%s)\n", lines, peek().type, peek().value);
                 errorCount++;
                 logTransition("parseFor", peek().value, "errorRecovery");
                 recover();
@@ -788,8 +909,8 @@ void parseFor() {
         if (strcmp(peek().type, "SEMICOLON") == 0) {
             match("SEMICOLON");
         } else {
-            printf("Syntax Error at Line %d: Expected ';' after for-initialization but got %s (%s)\n", lines,
-                   peek().type, peek().value);
+            printf("Syntax Error at Line %d: Expected ';' after for-initialization but got %s (%s)\n", lines, peek().type, peek().value);
+            fprintf(out, "Syntax Error at Line %d: Expected ';' after for-initialization but got %s (%s)\n", lines, peek().type, peek().value);
             errorCount++;
             logTransition("parseFor", peek().value, "errorRecovery");
             recover();
@@ -804,8 +925,8 @@ void parseFor() {
         if (strcmp(peek().type, "SEMICOLON") == 0) {
             match("SEMICOLON");
         } else {
-            printf("Syntax Error at Line %d: Expected ';' after for-condition but got %s (%s)\n", lines,
-                   peek().type, peek().value);
+            printf("Syntax Error at Line %d: Expected ';' after for-condition but got %s (%s)\n", lines, peek().type, peek().value);
+            fprintf(out, "Syntax Error at Line %d: Expected ';' after for-condition but got %s (%s)\n", lines, peek().type, peek().value);
             errorCount++;
             logTransition("parseFor", peek().value, "errorRecovery");
             recover();
@@ -824,14 +945,16 @@ void parseFor() {
             match("ASSIGN_OP");
             logTransition("parseFor", peek().value, "parseExpression");
             parseExpression();
-            if (TRACK1) printf("parseExpression: DONE\n");
-            if (TRACK1) printf("parseExpression: DONE\n");
+            if (TRACK1) {
+                printf("parseExpression: DONE\n");
+                fprintf(out, "parseExpression: DONE\n");
+            }
             if (!isIdentifierDeclared(namebuf)) {
                 errorCount++;
                 printf("Syntax Error at Line %d: Identifier '%s' assigned but not declared.\n", lines, namebuf);
+                fprintf(out, "Syntax Error at Line %d: Identifier '%s' assigned but not declared.\n", lines, namebuf);
             }
-        } else if (strcmp(peek().type, "IDENTIFIER") == 0 &&
-                   (strcmp(peekNext().type, "INCREMENT") == 0 || strcmp(peekNext().type, "DECREMENT") == 0)) {
+        } else if (strcmp(peek().type, "IDENTIFIER") == 0 && (strcmp(peekNext().type, "INCREMENT") == 0 || strcmp(peekNext().type, "DECREMENT") == 0)) {
             match("IDENTIFIER");
             advance();
         } else if (strcmp(peek().type, "INCREMENT") == 0 || strcmp(peek().type, "DECREMENT") == 0) {
@@ -840,7 +963,10 @@ void parseFor() {
         } else {
             logTransition("parseFor", peek().value, "parseExpression");
             parseExpression();
-            if (TRACK1) printf("parseExpression: DONE\n");
+            if (TRACK1) {
+                printf("parseExpression: DONE\n");
+                fprintf(out, "parseExpression: DONE\n");
+            }
         }
     }
 
@@ -848,8 +974,8 @@ void parseFor() {
         match("RIGHT_PAREN");
         logTransition("parseFor", "condition", "body");
     } else {
-        printf("Syntax Error at Line %d: Expected ')' to close for loop header but got %s (%s)\n", lines,
-               peek().type, peek().value);
+        printf("Syntax Error at Line %d: Expected ')' to close for loop header but got %s (%s)\n", lines, peek().type, peek().value);
+        fprintf(out, "Syntax Error at Line %d: Expected ')' to close for loop header but got %s (%s)\n", lines, peek().type, peek().value);
         errorCount++;
         logTransition("parseFor", peek().value, "errorRecovery");
         recover();
@@ -861,11 +987,17 @@ void parseFor() {
     if (strcmp(peek().type, "LEFT_BRACE") == 0 || isNoise("begin")) {
         logTransition("parseFor", peek().value, "parseBlock");
         parseBlock();
-        if (TRACK1) printf("parseBlock: DONE\n");
+        if (TRACK1) {
+            printf("parseBlock: DONE\n");
+            fprintf(out, "parseBlock: DONE\n");
+        }
     } else {
         logTransition("parseFor", peek().value, "parseStatement");
         parseStatement();
-        if (TRACK1) printf("parseStatement: DONE\n");
+        if (TRACK1) {
+            printf("parseStatement: DONE\n");
+            fprintf(out, "parseStatement: DONE\n");
+        }
     }
 }
 
@@ -873,6 +1005,7 @@ void parseAssignment() {
     logTransition("parseAssignment", peek().value, "dispatching");
     if (strcmp(peek().type, "IDENTIFIER") != 0) {
         printf("Syntax Error at Line %d: Assignment must start with identifier.\n", lines);
+        fprintf(out, "Syntax Error at Line %d: Assignment must start with identifier.\n", lines);
         errorCount++;
         recover();
         return;
@@ -896,6 +1029,7 @@ void parseAssignment() {
 
         if (strcmp(targetType, "unknown") != 0 && strcmp(targetType, castType) != 0) {
              printf("Syntax Error at Line %d: Type mismatch. Cannot assign %s(input) to variable '%s' of type %s.\n", lines, castType, namebuf, targetType);
+            fprintf(out, "Syntax Error at Line %d: Type mismatch. Cannot assign %s(input) to variable '%s' of type %s.\n", lines, castType, namebuf, targetType);
              errorCount++;
         }
 
@@ -910,6 +1044,7 @@ void parseAssignment() {
     else if (strcmp(peek().type, "KEYWORD") == 0 && strcmp(peek().value, "input") == 0) {
         if (strcmp(targetType, "unknown") != 0 && strcmp(targetType, "str") != 0 && strcmp(targetType, "char") != 0) {
              printf("Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", lines, namebuf, targetType);
+            fprintf(out, "Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", lines, namebuf, targetType);
              errorCount++;
         }
 
@@ -920,7 +1055,10 @@ void parseAssignment() {
     } else {
         logTransition("parseAssignment", peek().value, "parseExpression");
         parseExpression();
-        if (TRACK1) printf("parseExpression: DONE\n");
+        if (TRACK1) {
+            printf("parseExpression: DONE\n");
+            fprintf(out, "parseExpression: DONE\n");
+        }
     }
 
     match("SEMICOLON");
@@ -928,6 +1066,7 @@ void parseAssignment() {
     if (!isIdentifierDeclared(namebuf)) {
         errorCount++;
         printf("Syntax Error at Line %d: Identifier '%s' assigned but not declared.\n", lines, namebuf);
+        fprintf(out, "Syntax Error at Line %d: Identifier '%s' assigned but not declared.\n", lines, namebuf);
     }
 }
 
@@ -951,19 +1090,28 @@ void parseArrayAssignment() {
         if (strcmp(peek().type, "RIGHT_BRACE") != 0) {
             logTransition("parseArrayAssignment", peek().value, "parseExpression");
             parseExpression();
-            if (TRACK1) printf("parseExpression: DONE\n");
+            if (TRACK1) {
+                printf("parseExpression: DONE\n");
+                fprintf(out, "parseExpression: DONE\n");
+            }
             while (strcmp(peek().type, "COMMA") == 0) {
                 match("COMMA");
                 logTransition("parseArrayAssignment", peek().value, "parseExpression");
                 parseExpression();
-                if (TRACK1) printf("parseExpression: DONE\n");
+                if (TRACK1) {
+                    printf("parseExpression: DONE\n");
+                    fprintf(out, "parseExpression: DONE\n");
+                }
             }
         }
         match("RIGHT_BRACE");
     } else {
         logTransition("parseArrayAssignment", peek().value, "parseExpression");
         parseExpression();
-        if (TRACK1) printf("parseExpression: DONE\n");
+        if (TRACK1) {
+            printf("parseExpression: DONE\n");
+            fprintf(out, "parseExpression: DONE\n");
+        }
     }
     match("SEMICOLON");
 }
@@ -972,6 +1120,7 @@ void parseInputStatement() {
     logTransition("parseInput", peek().value, "dispatching");
     if (strcmp(peek().type, "IDENTIFIER") != 0) {
         printf("Syntax Error at Line %d: input assignment must start with identifier.\n", lines);
+        fprintf(out, "Syntax Error at Line %d: input assignment must start with identifier.\n", lines);
         errorCount++;
         recover();
         return;
@@ -983,6 +1132,7 @@ void parseInputStatement() {
 
     if (!isIdentifierDeclared(namebuf)) {
         printf("Semantic Error at Line %d: Identifier '%s' is not declared.\n", lines, namebuf);
+        fprintf(out, "Semantic Error at Line %d: Identifier '%s' is not declared.\n", lines, namebuf);
         errorCount++;
     }
 
@@ -994,6 +1144,7 @@ void parseInputStatement() {
 
     if (strcmp(targetType, "unknown") != 0 && strcmp(targetType, "str") != 0 && strcmp(targetType, "char") != 0) {
         printf("Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", lines, namebuf, targetType);
+        fprintf(out, "Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", lines, namebuf, targetType);
         errorCount++;
     }
 
@@ -1004,6 +1155,7 @@ void parseInputStatement() {
         match("STRING_INTERP");
     else {
         printf("Syntax Error at Line %d: input prompt must be a string literal.\n", lines);
+        fprintf(out, "Syntax Error at Line %d: input prompt must be a string literal.\n", lines);
         errorCount++;
         recover();
         return;
@@ -1021,6 +1173,7 @@ void parseOutput() {
     if (strcmp(peek().type, "STRING") != 0 && strcmp(peek().type, "STRING_INTERP") != 0) {
         errorCount++;
         printf("Syntax Error at Line %d: Output statement must start with a string literal.\n", lines);
+        fprintf(out, "Syntax Error at Line %d: Output statement must start with a string literal.\n", lines);
         logTransition("parseOutput", peek().value, "errorRecovery");
         recover();
         return;
@@ -1050,17 +1203,11 @@ void parseOutput() {
             strcat(finalOut, val);
             strcat(finalOut, end + 1);
 
-            //if (TRACK1) printf("%s\n", finalOut);
-        } else {
-            // No valid interpolation
-            //if (TRACK1) printf("%s\n", temp);
         }
 
         match("STRING_INTERP");
     }
     else {
-        // NORMAL STRING (no interpolation)
-        //if (TRACK1) printf("%s\n", peek().value);
         match("STRING");
     }
 
@@ -1069,6 +1216,7 @@ void parseOutput() {
     if (strcmp(peek().type, "COMMA") == 0) {
         errorCount++;
         printf("Syntax Error at Line %d: Output statement cannot accept multiple arguments.\n", lines);
+        fprintf(out, "Syntax Error at Line %d: Output statement cannot accept multiple arguments.\n", lines);
         logTransition("parseOutput", peek().value, "errorRecovery");
         recover();
         return;
@@ -1085,12 +1233,18 @@ void parseFunctionCall() {
     if (strcmp(peek().type, "RIGHT_PAREN") != 0) {
         logTransition("parseFunctionCall", peek().value, "parseExpression");
         parseExpression();
-        if (TRACK1) printf("parseExpression: DONE\n");
+        if (TRACK1) {
+            printf("parseExpression: DONE\n");
+            fprintf(out, "parseExpression: DONE\n");
+        }
         while (strcmp(peek().type, "COMMA") == 0) {
             match("COMMA");
             logTransition("parseFunctionCall", peek().value, "parseExpression");
             parseExpression();
-            if (TRACK1) printf("parseExpression: DONE\n");
+            if (TRACK1) {
+                printf("parseExpression: DONE\n");
+                fprintf(out, "parseExpression: DONE\n");
+            }
         }
     }
     match("RIGHT_PAREN");
@@ -1101,6 +1255,7 @@ void parseFunctionDef() {
     match("RESERVED_WORD");
     if (strcmp(peek().type, "IDENTIFIER") != 0) {
         printf("Syntax Error at Line %d: Expected function name.\n", lines);
+        fprintf(out, "Syntax Error at Line %d: Expected function name.\n", lines);
         errorCount++;
         logTransition("parseFunctionDef", peek().value, "errorRecovery");
         recover();
@@ -1118,6 +1273,7 @@ void parseFunctionDef() {
         while (1) {
             if (strcmp(peek().type, "RESERVED_WORD") != 0 || !isTypeValue(peek().value)) {
                 printf("Syntax Error at Line %d: Expected type in parameter list.\n", lines);
+                fprintf(out, "Syntax Error at Line %d: Expected type in parameter list.\n", lines);
                 errorCount++;
                 logTransition("parseFunctionDef", peek().value, "errorRecovery");
                 recover();
@@ -1129,6 +1285,7 @@ void parseFunctionDef() {
             match("RESERVED_WORD");
             if (strcmp(peek().type, "IDENTIFIER") != 0) {
                 printf("Syntax Error at Line %d: Expected parameter name.\n", lines);
+                fprintf(out, "Syntax Error at Line %d: Expected parameter name.\n", lines);
                 errorCount++;
                 logTransition("parseFunctionDef", peek().value, "errorRecovery");
                 recover();
@@ -1152,30 +1309,45 @@ void parseFunctionDef() {
 void parseExpression() {
     logTransition("parseExpression", peek().value, "parseLogicalOr");
     parseLogicalOr();
-    if (TRACK1) printf("parseLogicalOr: DONE\n");
+    if (TRACK1) {
+        printf("parseLogicalOr: DONE\n");
+        fprintf(out, "parseLogicalOr: DONE\n");
+    }
 }
 
 void parseLogicalOr() {
     logTransition("parseLogicalOr", peek().value, "parseLogicalAnd");
     parseLogicalAnd();
-    if (TRACK1) printf("parseLogicalAnd: DONE\n");
+    if (TRACK1) {
+        printf("parseLogicalAnd: DONE\n");
+        fprintf(out, "parseLogicalAnd: DONE\n");
+    }
     while (strcmp(peek().type, "LOGICAL") == 0 && strcmp(peek().value, "or") == 0) {
         match("LOGICAL");
         logTransition("parseLogicalOr", peek().value, "parseLogicalAnd");
         parseLogicalAnd();
-        if (TRACK1) printf("parseLogicalAnd: DONE\n");
+        if (TRACK1) {
+            printf("parseLogicalAnd: DONE\n");
+            fprintf(out, "parseLogicalAnd: DONE\n");
+        }
     }
 }
 
 void parseLogicalAnd() {
     logTransition("parseLogicalAnd", peek().value, "parseLogicalNot");
     parseLogicalNot();
-    if (TRACK1) printf("parseLogicalNot: DONE\n");
+    if (TRACK1) {
+        printf("parseLogicalNot: DONE\n");
+        fprintf(out, "parseLogicalNot: DONE\n");
+    }
     while (strcmp(peek().type, "LOGICAL") == 0 && strcmp(peek().value, "and") == 0) {
         match("LOGICAL");
         logTransition("parseLogicalAnd", peek().value, "parseLogicalNot");
         parseLogicalNot();
-        if (TRACK1) printf("parseLogicalNot: DONE\n");
+        if (TRACK1) {
+            printf("parseLogicalNot: DONE\n");
+            fprintf(out, "parseLogicalNot: DONE\n");
+        }
     }
 }
 
@@ -1185,12 +1357,19 @@ void parseLogicalNot() {
         match("LOGICAL");
         logTransition("parseLogicalNot", peek().value, "parseLogicalNot");
         parseLogicalNot();
-        if (TRACK1) printf("parseLogicalNot: DONE\n");
+        if (TRACK1) {
+            printf("parseLogicalNot: DONE\n");
+            fprintf(out, "parseLogicalNot: DONE\n");
+        }
         return;
     }
     logTransition("parseLogicalNot", peek().value, "parseRelational");
     parseRelational();
-    if (TRACK1) printf("parseRelational: DONE\n");
+    if (TRACK1) {
+        printf("parseRelational: DONE\n");
+        fprintf(out, "parseRelational: DONE\n");
+    }
+
 }
 
 void parseRelational() {
@@ -1201,27 +1380,39 @@ void parseRelational() {
         match("REL_OP");
         logTransition("parseRelational", peek().value, "parseArithmetic");
         parseArithmetic();
-        if (TRACK1) printf("parseArithmetic: DONE\n");
+        if (TRACK1) {
+            printf("parseArithmetic: DONE\n");
+            fprintf(out, "parseArithmetic: DONE\n");
+        }
     }
 }
 
 void parseArithmetic() {
     logTransition("parseArithmetic", peek().value, "parseTerm");
     parseTerm();
-    if (TRACK1) printf("parseTerm: DONE\n");
+    if (TRACK1) {
+        printf("parseTerm: DONE\n");
+        fprintf(out, "parseTerm: DONE\n");
+    }
     while (strcmp(peek().type, "ARITH_OP") == 0 &&
           (strcmp(peek().value, "+") == 0 || strcmp(peek().value, "-") == 0)) {
         match("ARITH_OP");
         logTransition("parseArithmetic", peek().value, "parseTerm");
         parseTerm();
-        if (TRACK1) printf("parseTerm: DONE\n");
+        if (TRACK1) {
+            printf("parseTerm: DONE\n");
+            fprintf(out, "parseTerm: DONE\n");
+        }
     }
 }
 
 void parseTerm() {
     logTransition("parseTerm", peek().value, "parseFactor");
     parseFactor();
-    if (TRACK1) printf("parseFactor: DONE\n");
+    if (TRACK1) {
+        printf("parseFactor: DONE\n");
+        fprintf(out, "parseFactor: DONE\n");
+    }
     while (strcmp(peek().type, "ARITH_OP") == 0 &&
           (strcmp(peek().value, "*") == 0 ||
            strcmp(peek().value, "/") == 0 ||
@@ -1230,7 +1421,10 @@ void parseTerm() {
         match("ARITH_OP");
         logTransition("parseTerm", peek().value, "parseFactor");
         parseFactor();
-        if (TRACK1) printf("parseFactor: DONE\n");
+        if (TRACK1) {
+            printf("parseFactor: DONE\n");
+            fprintf(out, "parseFactor: DONE\n");
+        }
     }
 }
 
@@ -1241,7 +1435,10 @@ void parseFactor() {
         match("ARITH_OP");
         logTransition("parseFactor", peek().value, "parseFactor");
         parseFactor();
-        if (TRACK1) printf("parseFactor: DONE\n");
+        if (TRACK1) {
+            printf("parseFactor: DONE\n");
+            fprintf(out, "parseFactor: DONE\n");
+        }
         return;
     }
     if (strcmp(peek().type, "INCREMENT") == 0 || strcmp(peek().type, "DECREMENT") == 0) {
@@ -1259,10 +1456,14 @@ void parseFactor() {
         if (strcmp(peekNext().type, "LEFT_PAREN") == 0) {
             logTransition("parseFactor", peek().value, "parseFunctionCall");
             parseFunctionCall();
-            if (TRACK1) printf("parseFunctionCall: DONE\n");
+            if (TRACK1) {
+                printf("parseFunctionCall: DONE\n");
+                fprintf(out, "parseFunctionCall: DONE\n");
+            }
         } else {
             if (!isIdentifierDeclared(peek().value)) {
                 printf("Semantic Error at Line %d: Identifier '%s' is not declared\n", lines, peek().value);
+                fprintf(out, "Semantic Error at Line %d: Identifier '%s' is not declared\n", lines, peek().value);
                 errorCount++;
             }
             match("IDENTIFIER");
@@ -1271,9 +1472,13 @@ void parseFactor() {
         match("LEFT_PAREN");
         logTransition("parseFactor", peek().value, "parseExpression");
         parseExpression();
-        if (TRACK1) printf("parseExpression: DONE\n");
+        if (TRACK1) {
+            printf("parseExpression: DONE\n");
+            fprintf(out, "parseExpression: DONE\n");
+        }
         if (strcmp(peek().type, "RIGHT_PAREN") != 0) {
             printf("Syntax Error at Line %d: Missing closing parenthesis\n", lines);
+            fprintf(out, "Syntax Error at Line %d: Missing closing parenthesis\n", lines);
             errorCount++;
             logTransition("parseFactor", peek().value, "errorRecovery");
             recover();
@@ -1284,8 +1489,8 @@ void parseFactor() {
                (strcmp(peek().value, "True") == 0 || strcmp(peek().value, "False") == 0 || strcmp(peek().value, "null") == 0)) {
         advance();
     } else {
-        printf("Syntax Error at Line %d: Missing operand - Expected NUMBER, IDENTIFIER, STRING, or '(' but got %s (%s)\n", lines,
-               peek().type, peek().value);
+        printf("Syntax Error at Line %d: Missing operand - Expected NUMBER, IDENTIFIER, STRING, or '(' but got %s (%s)\n", lines, peek().type, peek().value);
+        fprintf(out, "Syntax Error at Line %d: Missing operand - Expected NUMBER, IDENTIFIER, STRING, or '(' but got %s (%s)\n", lines, peek().type, peek().value);
         errorCount++;
         logTransition("parseFactor", peek().value, "errorRecovery");
         recover();
@@ -1295,67 +1500,28 @@ void parseFactor() {
         match("ARITH_OP");
         logTransition("parseFactor", peek().value, "parseFactor");
         parseFactor();
-        if (TRACK1) printf("parseFactor: DONE\n");
+        if (TRACK1) {
+            printf("parseFactor: DONE\n");
+            fprintf(out, "parseFactor: DONE\n");
+        }
     }
 }
-FILE *tokenFile;
 
 
-Token getNextToken() {
-    char line[256];
-    Token t = { "EOF", "" };
 
-    // Keep reading lines until we find a REAL token or hit EOF
-    while (fgets(line, sizeof(line), tokenFile)) {
 
-        // Basic cleanup
-        if (strlen(line) < 3) continue;
-        line[strcspn(line, "\n")] = '\0';
 
-        // Parse line format: TYPE(VALUE)
-        char *open = strchr(line, '(');
-        char *close = strrchr(line, ')');
-
-        if (!open || !close || close < open) continue;
-
-        // Extract Type
-        int typeLen = open - line;
-        strncpy(t.type, line, typeLen);
-        t.type[typeLen] = '\0';
-
-        // 1. Handle Comments (Skip)
-        if (strcmp(t.type, "COMMENT") == 0 ||
-            strcmp(t.type, "COMMENT_START") == 0 ||
-            strcmp(t.type, "COMMENT_END") == 0 ||
-            strcmp(t.type, "COM_STR") == 0) {
-            continue;
-            }
-
-        // 2. Handle Newlines (Increment Line Count, then SKIP)
-        if (strcmp(t.type, "NEW_LINE") == 0) {
-            lines++;
-            continue; // <--- CRITICAL FIX: Go back to start of loop
-        }
-
-        // Extract Value
-        int valLen = close - open - 1;
-        if (valLen > 0) {
-            strncpy(t.value, open + 1, valLen);
-            t.value[valLen] = '\0';
-        } else {
-            t.value[0] = '\0';
-        }
-
-        // Return the valid token found
-        return t;
-    }
-
-    return EOF_TOKEN;
-}
 int main() {
     tokenFile = fopen("Symbol_Table.txt", "r");
     if (!tokenFile) {
         printf("Error: Cannot open Symbol_Table.txt\n");
+        return 1;
+    }
+
+    out = fopen("Output_Syntax.txt", "w");
+    if (!out) {
+        printf("Error: Cannot create output file.\n");
+        fclose(tokenFile);
         return 1;
     }
 
@@ -1365,14 +1531,63 @@ int main() {
 
     initLookahead();
     parseProgram();
+    if (TRACK1) {
+        printf("parseProgram: DONE\n");
+        fprintf(out, "parseProgram: DONE\n");
+    }
 
     fclose(tokenFile);
 
     if (errorCount > 0) {
         printf("Parsing finished. Total errors: %d\n", errorCount);
+        fprintf(out, "Parsing finished. Total errors: %d\n", errorCount));
     } else {
         printf("Parsing finished successfully.\n");
+        fprintf(out, "Parsing finished successfully.\n");
     }
 
     return 0;
+}
+Token getNextToken() {
+    char line[256];
+    Token t = { "EOF", "" };
+    while (fgets(line, sizeof(line), tokenFile)) {
+
+
+        if (strlen(line) < 3) continue;
+        line[strcspn(line, "\n")] = '\0';
+
+        char *open = strchr(line, '(');
+        char *close = strrchr(line, ')');
+
+        if (!open || !close || close < open) continue;
+
+        int typeLen = open - line;
+        strncpy(t.type, line, typeLen);
+        t.type[typeLen] = '\0';
+
+        if (strcmp(t.type, "COMMENT") == 0 ||
+            strcmp(t.type, "COMMENT_START") == 0 ||
+            strcmp(t.type, "COMMENT_END") == 0 ||
+            strcmp(t.type, "COM_STR") == 0) {
+            continue;
+            }
+
+        if (strcmp(t.type, "NEW_LINE") == 0) {
+            lines++;
+            continue;
+        }
+
+        int valLen = close - open - 1;
+        if (valLen > 0) {
+            strncpy(t.value, open + 1, valLen);
+            t.value[valLen] = '\0';
+        } else {
+            t.value[0] = '\0';
+        }
+
+        return t;
+    }
+
+    return EOF_TOKEN;
 }
