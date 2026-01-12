@@ -8,7 +8,7 @@ main() {
     str message;
     bool flag;
 
-    add();
+    add()
     
     a = input("Enter first number: ");
     b = 42;
