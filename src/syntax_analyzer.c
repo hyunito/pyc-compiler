@@ -113,8 +113,8 @@ int match(const char* expected) {
 void declareIdentifier(const char* name, const char* type) {
     for (int i = 0; i < symbolCount; i++) {
         if (strcmp(symbolTable[i].name, name) == 0) {
-            printf("Syntax Error at Line %d: Identifier '%s' is already declared.\n", peekAt(0).line, name);
-            fprintf(out, "Syntax Error at Line %d: Identifier '%s' is already declared.\n", peekAt(0).line, name);
+            printf("Semantic Error at Line %d: Identifier '%s' is already declared.\n", peekAt(0).line, name);
+            fprintf(out, "Semantic Error at Line %d: Identifier '%s' is already declared.\n", peekAt(0).line, name);
             errorCount++;
             return;
         }
@@ -1465,6 +1465,9 @@ void parseFactor() {
                 errorCount++;
             }
             match("IDENTIFIER");
+            if (strcmp(peekAt(0).type, "INCREMENT") == 0 || strcmp(peekAt(0).type, "DECREMENT") == 0) {
+                advance();
+            }
         }
     } else if (strcmp(peekAt(0).type, "LEFT_PAREN") == 0) {
         match("LEFT_PAREN");

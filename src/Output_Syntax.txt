@@ -67,19 +67,11 @@ parseStatement --bool--> If | While | For | Expression | Output | Input | Functi
 parseStatement --bool--> parseDeclaration
 parseDeclaration: DONE
 parseStatement: DONE
-parseBlock --add--> parseStatement
-parseStatement --add--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-parseStatement --add--> parseFunctionCall
-parseFunctionCall --add--> dispatching
-parseFunctionCall: DONE
-Syntax Error at Line 13: Expected SEMICOLON but got IDENTIFIER (a)
-errorRecovery --a--> dispatching
-parseStatement: DONE
-parseBlock --input--> parseStatement
-parseStatement --input--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-Syntax Error at Line 13: Unknown statement starting with KEYWORD (input)
-parseStatement --input--> errorRecovery
-errorRecovery --input--> dispatching
+parseBlock --a--> parseStatement
+parseStatement --a--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --a--> parseInput
+parseInput --a--> dispatching
+parseInput: DONE
 parseStatement: DONE
 parseBlock --b--> parseStatement
 parseStatement --b--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
@@ -157,6 +149,174 @@ parseLogicalNot: DONE
 parseLogicalAnd: DONE
 parseLogicalOr: DONE
 parseExpression: DONE
+parseStatement: DONE
+parseBlock --int--> parseStatement
+parseStatement --int--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --int--> parseDeclaration
+parseDeclaration --z--> parseArrayAssignment
+parseArrayAssignment --z--> dispatching
+parseArrayAssignment --2--> parseExpression
+parseExpression --2--> parseLogicalOr
+parseLogicalOr --2--> parseLogicalAnd
+parseLogicalAnd --2--> parseLogicalNot
+parseLogicalNot --2--> dispatching
+parseLogicalNot --2--> parseRelational
+parseRelational --2--> parseArithmetic
+parseArithmetic --2--> parseTerm
+parseTerm --2--> parseFactor
+parseFactor --2--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr: DONE
+parseExpression: DONE
+parseArrayAssignment --3--> parseExpression
+parseExpression --3--> parseLogicalOr
+parseLogicalOr --3--> parseLogicalAnd
+parseLogicalAnd --3--> parseLogicalNot
+parseLogicalNot --3--> dispatching
+parseLogicalNot --3--> parseRelational
+parseRelational --3--> parseArithmetic
+parseArithmetic --3--> parseTerm
+parseTerm --3--> parseFactor
+parseFactor --3--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr: DONE
+parseExpression: DONE
+parseArrayAssignment --4--> parseExpression
+parseExpression --4--> parseLogicalOr
+parseLogicalOr --4--> parseLogicalAnd
+parseLogicalAnd --4--> parseLogicalNot
+parseLogicalNot --4--> dispatching
+parseLogicalNot --4--> parseRelational
+parseRelational --4--> parseArithmetic
+parseArithmetic --4--> parseTerm
+parseTerm --4--> parseFactor
+parseFactor --4--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr: DONE
+parseExpression: DONE
+parseArrayAssignment: DONE
+parseDeclaration: DONE
+parseStatement: DONE
+parseBlock --b--> parseStatement
+parseStatement --b--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --IDENTIFIER--> end
+parseStatement: DONE
+parseBlock --b--> parseStatement
+parseStatement --b--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --IDENTIFIER--> end
+parseStatement: DONE
+parseBlock --++--> parseStatement
+parseStatement --++--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --IDENTIFIER--> end
+parseStatement: DONE
+parseBlock ------> parseStatement
+parseStatement ------> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --IDENTIFIER--> end
+parseStatement: DONE
+parseBlock --c--> parseStatement
+parseStatement --c--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --c--> parseAssignment
+parseAssignment: DONE
+parseAssignment --c--> dispatching
+parseAssignment --add--> parseExpression
+parseExpression --add--> parseLogicalOr
+parseLogicalOr --add--> parseLogicalAnd
+parseLogicalAnd --add--> parseLogicalNot
+parseLogicalNot --add--> dispatching
+parseLogicalNot --add--> parseRelational
+parseRelational --add--> parseArithmetic
+parseArithmetic --add--> parseTerm
+parseTerm --add--> parseFactor
+parseFactor --add--> dispatching
+parseFactor --add--> parseFunctionCall
+parseFunctionCall --add--> dispatching
+parseFunctionCall --10--> parseExpression
+parseExpression --10--> parseLogicalOr
+parseLogicalOr --10--> parseLogicalAnd
+parseLogicalAnd --10--> parseLogicalNot
+parseLogicalNot --10--> dispatching
+parseLogicalNot --10--> parseRelational
+parseRelational --10--> parseArithmetic
+parseArithmetic --10--> parseTerm
+parseTerm --10--> parseFactor
+parseFactor --10--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr: DONE
+parseExpression: DONE
+parseFunctionCall --20--> parseExpression
+parseExpression --20--> parseLogicalOr
+parseLogicalOr --20--> parseLogicalAnd
+parseLogicalAnd --20--> parseLogicalNot
+parseLogicalNot --20--> dispatching
+parseLogicalNot --20--> parseRelational
+parseRelational --20--> parseArithmetic
+parseArithmetic --20--> parseTerm
+parseTerm --20--> parseFactor
+parseFactor --20--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr: DONE
+parseExpression: DONE
+parseFunctionCall: DONE
+parseFactor: DONE
+parseTerm: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr: DONE
+parseExpression: DONE
+parseStatement: DONE
+parseBlock --int--> parseStatement
+parseStatement --int--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --int--> parseFunctionDef
+parseFunctionDef --int--> dispatching
+parseFunctionDef --{--> parseBlock
+parseBlock --{--> dispatching
+parseBlock --return--> parseStatement
+parseStatement --return--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --a--> parseExpression
+parseExpression --a--> parseLogicalOr
+parseLogicalOr --a--> parseLogicalAnd
+parseLogicalAnd --a--> parseLogicalNot
+parseLogicalNot --a--> dispatching
+parseLogicalNot --a--> parseRelational
+parseRelational --a--> parseArithmetic
+parseArithmetic --a--> parseTerm
+parseTerm --a--> parseFactor
+parseFactor --a--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseArithmetic --b--> parseTerm
+parseTerm --b--> parseFactor
+parseFactor --b--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr: DONE
+parseExpression: DONE
+parseStatement: DONE
+parseFunctionDef: DONE
 parseStatement: DONE
 parseBlock --output--> parseStatement
 parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
@@ -671,4 +831,4 @@ parseStatement --return--> If | While | For | Expression | Output | Input | Func
 parseStatement: DONE
 parseBlock: DONE
 parseProgram: DONE
-Parsing finished. Total errors: 2
+Parsing finished successfully.

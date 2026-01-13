@@ -7,13 +7,22 @@ main() {
     float result;
     str message;
     bool flag;
-
-    add()
     
     a = input("Enter first number: ");
     b = 42;
     c = b;
     result = b * 2 - 5;
+    int z[] = {2, 3, 4};
+    b++;
+    b--;
+    ++b;
+    --b;
+
+ c = add(10, 20);
+
+   int add(int e, int f){
+   return a + b;
+}
     
     output("=== PyC Language Test ===");
     
