@@ -57,8 +57,8 @@ int isSymbol(char symbol1) {
 }
 
 int main() {
-    char filename[] = "syntax_input.pyclang";
-
+    char filename[] = "full_input.pyclang";
+    int comment_newlines = 0;
     int len = 0;
     while (filename[len] != '\0') len++;
 
@@ -1373,7 +1373,6 @@ int main() {
                 }
 
             case 112:
-                // Multi-line comment state
                 if (c == '*') {
                     int next = fgetc(fp);
                     if (next == '/') {
@@ -1384,6 +1383,13 @@ int main() {
                         }
                         printf("COMMENT_END(*/)\n");
                         fprintf(out, "COMMENT_END(*/)\n");
+
+                        // Print the accumulated newlines so the parser keeps track of line numbers
+                        for (int i = 0; i < comment_newlines; i++) {
+                            printf("NEW_LINE(\\n)\n");
+                            fprintf(out, "NEW_LINE(\\n)\n");
+                        }
+
                         idx = 0;
                         state = 0;
                         break;
@@ -1393,6 +1399,11 @@ int main() {
                         state = 112;
                         break;
                     }
+                } else if (c == '\n') {
+                    comment_newlines++; // <--- INCREMENT MAIN VARIABLE
+                    buffer[idx++] = c;  // Store the \n in buffer if you want the text to include it
+                    state = 112;
+                    break;
                 } else {
                     buffer[idx++] = c;
                     state = 112;
@@ -1400,7 +1411,7 @@ int main() {
                 }
 
             case 113:
-                // Error state
+
                 {
                     int is_valid = 0;
 
@@ -1432,7 +1443,6 @@ int main() {
                 if (c == '"') {
                     buffer[idx] = '\0';
 
-                    // Check if the string contains interpolation
                     if (strchr(buffer, '{') != NULL && strchr(buffer, '}') != NULL) {
                         printf("STRING_INTERP(%s)\n", buffer);
                         fprintf(out, "STRING_INTERP(%s)\n", buffer);
@@ -1687,11 +1697,11 @@ int main() {
                 }
             case 134:
                 if (c == '*') {
-                    // Multi-line comment start
                     printf("COMMENT_START(/*)\n");
                     fprintf(out, "COMMENT_START(/*)\n");
                     idx = 0;
-                    state = 112; // multi-line comment state
+                    comment_newlines = 0;
+                    state = 112;
                     break;
                 }
             case 135:

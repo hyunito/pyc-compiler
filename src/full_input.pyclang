@@ -1,50 +1,101 @@
-#This is a single-line comment
+/* === PyC Master Test File ===
+   This file tests all tokens, keywords, and syntax rules defined in the PyC 
+*/
+main() begin {
 
-void main() begin {
-    int a[] = 9;  
-    float b = 10.5;
-    bool isTrue = True;
-    char letter = 'A';
-    str message = "The sum of a and b is:";
     const float pi = 3.14;
+    int x = 10, y = 5;
+    str a;
+    char letter = "A";
+    bool isTrue = True;
+    bool isFalse = False;
 
-    int c, d, e;
-    c = a + b;
-    d = a - b;
-    e = a * b;
-    f = a / b;
-    g = a % 2;
-    h = a // 2;
-    int i = a ** 2;
-
-    ` ~ @ $ ^ & _ | ?
-
-    if (a <= b and not False) then {
-        output("Condition: a <= b");
-    } else if (a >= b or True) then {  
-        output("Condition: a > b");
-    } else {
-        continue;  
+    int add(int f, int g) {
+        return f + g;
     }
 
-    while (a > 20) do {
-        a = a + 1;
-        if (a == null) {
+    void sub(int f, int g) {
+            output("{g - f}");
+    }
+    int z[] = {2, 3, 4};
+
+    output("=== PyC Language Test ===");
+    a = input("Enter your name: ");
+    output("Hello {a}");
+
+    int c;
+    c = x + y;
+    c = x - y;
+    c = x * y;
+    float divRes;
+    divRes = x / y;
+    int modRes;
+    modRes = x % 2;
+    int expRes;
+    expRes = x ** 2;
+    int floorDiv;
+    floorDiv = x // 2;
+
+    x++;
+    x--;
+    ++x;
+    --x;
+
+    c = add(10, 20);
+    output("Result of add function: {c}");
+
+    if (x > 5 and not isFalse) then {
+        output("Condition 1 Met: x > 5 AND not False");
+    } else if (x <= 5 or isTrue) then {
+        output("Condition 2 Met: x <= 5 OR True");
+    } else {
+        output("No conditions met");
+    }
+
+    if (c == 30) {
+        output("C is equal to 30");
+    }
+    if (c != 0) {
+        output("C is not equal to 0");
+    }
+
+    int i = 0;
+    while (i >= 3) do {
+        output("While Loop Iteration: {i}");
+        i = i + 1;
+
+        if (i == null) {
             break;
         }
     }
-    
-    for (i = 0; i < g; i++) {
-        if (c != 0) {  
-        i--;}
+
+    int outer = 0;
+    while (outer < 2) do {
+        int inner = 0;
+        while (inner < 2) do {
+            output("Nested While - Outer: {outer}, Inner: {inner}");
+            inner = inner + 1;
+        }
+        outer = outer + 1;
     }
 
-    output("The final value of a is {a}.");
-    int z = int(input("Enter a value: "));  
-    message = input("Enter a name: ");
-    return;
+    for (int j = 0; j < 5; j++) {
+        if (j == 2) {
+            continue;
+        }
+        if (j == 4) {
+            break;
+        }
+        output("For Loop Iteration: {j}");
     }
+
+    for (int k = 0; k < 2; k++) {
+        for (int l = 0; l < 2; l++) {
+            output("Nested For - k: {k}, l: {l}");
+        }
+    }
+
+    output("All tests completed successfully!");
+    return;
 } end
-/*Multi-line comment test
-   Line 2 of comment
-   End of comment * Should end with*/
+# This is a single-line comment test

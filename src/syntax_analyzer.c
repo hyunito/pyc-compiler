@@ -170,8 +170,8 @@ void validateStringInterpolation(const char* content) {
 
                 if (bufIdx > 0) {
                     if (!isIdentifierDeclared(buffer)) {
-                        printf("Syntax Error at Line %d: Identifier '%s' inside string interpolation is not declared.\n", peekAt(0).line, buffer);
-                        fprintf(out, "Syntax Error at Line %d: Identifier '%s' inside string interpolation is not declared.\n", peekAt(0).line, buffer);
+                        printf("Semantic Error at Line %d: Identifier '%s' inside string interpolation is not declared.\n", peekAt(0).line, buffer);
+                        fprintf(out, "Semantic Error at Line %d: Identifier '%s' inside string interpolation is not declared.\n", peekAt(0).line, buffer);
                         errorCount++;
                     }
                 }
@@ -271,17 +271,18 @@ void parseInputStatement();
 void parseFunctionDef();
 void parseFunctionCall();
 void parseArrayAssignment();
-void parseExpression();
-void parseLogicalOr();
-void parseLogicalAnd();
-void parseLogicalNot();
-void parseRelational();
-void parseArithmetic();
-void parseTerm();
-void parseFactor();
+const char* parseExpression();
+const char* parseLogicalOr();
+const char* parseLogicalAnd();
+const char* parseLogicalNot();
+const char* parseRelational();
+const char* parseArithmetic();
+const char* parseTerm();
+const char* parseFactor();
 
 void parseProgram() {
     logTransition("parseProgram", peekAt(0).value, "Finding main()");
+
     if (!isKeyword("main")) {
         printf("Syntax Error: Program must start with main()\n");
         fprintf(out, "Syntax Error: Program must start with main()\n");
@@ -600,8 +601,8 @@ void parseDeclaration() {
                 castType[sizeof(castType)-1] = '\0';
 
                 if (strcmp(declaredType, castType) != 0) {
-                    printf("Syntax Error at Line %d: Type mismatch. Cannot assign %s(input) to variable of type %s.\n", peekAt(0).line, castType, declaredType);
-                    fprintf(out, "Syntax Error at Line %d: Type mismatch. Cannot assign %s(input) to variable of type %s.\n", peekAt(0).line, castType, declaredType);
+                    printf("Semantic Error at Line %d: Type mismatch. Cannot assign %s(input) to variable of type %s.\n", peekAt(0).line, castType, declaredType);
+                    fprintf(out, "Semantic Error at Line %d: Type mismatch. Cannot assign %s(input) to variable of type %s.\n", peekAt(0).line, castType, declaredType);
                     errorCount++;
                 }
 
@@ -617,8 +618,8 @@ void parseDeclaration() {
 
             else if (isKeyword("input")) {
                 if (strcmp(declaredType, "str") != 0 && strcmp(declaredType, "char") != 0) {
-                     printf("Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable is type %s.\n", peekAt(0).line, declaredType);
-                    fprintf(out, "Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable is type %s.\n", peekAt(0).line, declaredType);
+                     printf("Semantic Error at Line %d: Type mismatch. 'input()' returns char/str, but variable is type %s.\n", peekAt(0).line, declaredType);
+                    fprintf(out, "Semantic Error at Line %d: Type mismatch. 'input()' returns char/str, but variable is type %s.\n", peekAt(0).line, declaredType);
                      errorCount++;
                 }
 
@@ -664,8 +665,15 @@ int expectCondition() {
         recover();
         return 0;
     }
-    parseExpression();
+    const char* condType = parseExpression();
 
+    if (strcmp(condType, "bool") != 0 && strcmp(condType, "unknown") != 0) {
+        printf("Semantic Error at Line %d: Condition must be boolean, got %s.\n",
+               peekAt(0).line, condType);
+        fprintf(out, "Semantic Error at Line %d: Condition must be boolean, got %s.\n",
+               peekAt(0).line, condType);
+        errorCount++;
+    }
     if (strcmp(peekAt(0).type, "RIGHT_PAREN") != 0) {
         printf("Syntax Error at Line %d: Expected ')' to close condition but got %s (%s)\n", peekAt(0).line, peekAt(0).type, peekAt(0).value);
         fprintf(out, "Syntax Error at Line %d: Expected ')' to close condition but got %s (%s)\n", peekAt(0).line, peekAt(0).type, peekAt(0).value);
@@ -949,8 +957,8 @@ void parseFor() {
             }
             if (!isIdentifierDeclared(namebuf)) {
                 errorCount++;
-                printf("Syntax Error at Line %d: Identifier '%s' assigned but not declared.\n", peekAt(0).line, namebuf);
-                fprintf(out, "Syntax Error at Line %d: Identifier '%s' assigned but not declared.\n", peekAt(0).line, namebuf);
+                printf("Semantic Error at Line %d: Identifier '%s' assigned but not declared.\n", peekAt(0).line, namebuf);
+                fprintf(out, "Semantic Error at Line %d: Identifier '%s' assigned but not declared.\n", peekAt(0).line, namebuf);
             }
         } else if (strcmp(peekAt(0).type, "IDENTIFIER") == 0 && (strcmp(peekAt(1).type, "INCREMENT") == 0 || strcmp(peekAt(1).type, "DECREMENT") == 0)) {
             match("IDENTIFIER");
@@ -1026,8 +1034,8 @@ void parseAssignment() {
         castType[sizeof(castType)-1] = '\0';
 
         if (strcmp(targetType, "unknown") != 0 && strcmp(targetType, castType) != 0) {
-             printf("Syntax Error at Line %d: Type mismatch. Cannot assign %s(input) to variable '%s' of type %s.\n", peekAt(0).line, castType, namebuf, targetType);
-            fprintf(out, "Syntax Error at Line %d: Type mismatch. Cannot assign %s(input) to variable '%s' of type %s.\n", peekAt(0).line, castType, namebuf, targetType);
+             printf("Semantic Error at Line %d: Type mismatch. Cannot assign %s(input) to variable '%s' of type %s.\n", peekAt(0).line, castType, namebuf, targetType);
+            fprintf(out, "Semantic Error at Line %d: Type mismatch. Cannot assign %s(input) to variable '%s' of type %s.\n", peekAt(0).line, castType, namebuf, targetType);
              errorCount++;
         }
 
@@ -1041,8 +1049,8 @@ void parseAssignment() {
     }
     else if (strcmp(peekAt(0).type, "KEYWORD") == 0 && strcmp(peekAt(0).value, "input") == 0) {
         if (strcmp(targetType, "unknown") != 0 && strcmp(targetType, "str") != 0 && strcmp(targetType, "char") != 0) {
-             printf("Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", peekAt(0).line, namebuf, targetType);
-            fprintf(out, "Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", peekAt(0).line, namebuf, targetType);
+             printf("Semantic Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", peekAt(0).line, namebuf, targetType);
+            fprintf(out, "Semantic Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", peekAt(0).line, namebuf, targetType);
              errorCount++;
         }
 
@@ -1063,8 +1071,8 @@ void parseAssignment() {
 
     if (!isIdentifierDeclared(namebuf)) {
         errorCount++;
-        printf("Syntax Error at Line %d: Identifier '%s' assigned but not declared.\n", peekAt(0).line, namebuf);
-        fprintf(out, "Syntax Error at Line %d: Identifier '%s' assigned but not declared.\n", peekAt(0).line, namebuf);
+        printf("Semantic Error at Line %d: Identifier '%s' assigned but not declared.\n", peekAt(0).line, namebuf);
+        fprintf(out, "Semantic Error at Line %d: Identifier '%s' assigned but not declared.\n", peekAt(0).line, namebuf);
     }
 }
 
@@ -1117,8 +1125,8 @@ void parseArrayAssignment() {
 void parseInputStatement() {
     logTransition("parseInput", peekAt(0).value, "dispatching");
     if (strcmp(peekAt(0).type, "IDENTIFIER") != 0) {
-        printf("Syntax Error at Line %d: input assignment must start with identifier.\n", peekAt(0).line);
-        fprintf(out, "Syntax Error at Line %d: input assignment must start with identifier.\n", peekAt(0).line);
+        printf("Semantic Error at Line %d: input assignment must start with identifier.\n", peekAt(0).line);
+        fprintf(out, "Semantic Error at Line %d: input assignment must start with identifier.\n", peekAt(0).line);
         errorCount++;
         recover();
         return;
@@ -1141,8 +1149,8 @@ void parseInputStatement() {
     match("KEYWORD");
 
     if (strcmp(targetType, "unknown") != 0 && strcmp(targetType, "str") != 0 && strcmp(targetType, "char") != 0) {
-        printf("Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", peekAt(0).line, namebuf, targetType);
-        fprintf(out, "Syntax Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", peekAt(0).line, namebuf, targetType);
+        printf("Semantic Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", peekAt(0).line, namebuf, targetType);
+        fprintf(out, "Semantic Error at Line %d: Type mismatch. 'input()' returns char/str, but variable '%s' is type %s.\n", peekAt(0).line, namebuf, targetType);
         errorCount++;
     }
 
@@ -1304,76 +1312,128 @@ void parseFunctionDef() {
     parseBlock();
 }
 
-void parseExpression() {
+const char* parseExpression() {
     logTransition("parseExpression", peekAt(0).value, "parseLogicalOr");
-    parseLogicalOr();
+    const char* type = parseLogicalOr();
     if (TRACK1) {
         printf("parseLogicalOr: DONE\n");
-        fprintf(out, "parseLogicalOr: DONE\n");
+        fprintf(out, "parseLogicalOr:  DONE\n");
     }
+    return type;
 }
 
-void parseLogicalOr() {
+const char* parseLogicalOr() {
     logTransition("parseLogicalOr", peekAt(0).value, "parseLogicalAnd");
-    parseLogicalAnd();
+    const char* leftType = parseLogicalAnd();
     if (TRACK1) {
         printf("parseLogicalAnd: DONE\n");
         fprintf(out, "parseLogicalAnd: DONE\n");
     }
     while (strcmp(peekAt(0).type, "LOGICAL") == 0 && strcmp(peekAt(0).value, "or") == 0) {
+        int line = peekAt(0).line;
         match("LOGICAL");
         logTransition("parseLogicalOr", peekAt(0).value, "parseLogicalAnd");
-        parseLogicalAnd();
+        const char* rightType = parseLogicalAnd();
         if (TRACK1) {
             printf("parseLogicalAnd: DONE\n");
             fprintf(out, "parseLogicalAnd: DONE\n");
         }
+
+
+        if (strcmp(leftType, "bool") != 0 && strcmp(leftType, "unknown") != 0) {
+            printf("Semantic Error at Line %d:  Logical 'or' requires boolean operands, got %s.\n", line, leftType);
+            fprintf(out, "Semantic Error at Line %d: Logical 'or' requires boolean operands, got %s.\n", line, leftType);
+            errorCount++;
+        }
+        if (strcmp(rightType, "bool") != 0 && strcmp(rightType, "unknown") != 0) {
+            printf("Semantic Error at Line %d:  Logical 'or' requires boolean operands, got %s.\n", line, rightType);
+            fprintf(out, "Semantic Error at Line %d: Logical 'or' requires boolean operands, got %s.\n", line, rightType);
+            errorCount++;
+        }
+        leftType = "bool";
     }
+    return leftType;
 }
 
-void parseLogicalAnd() {
+const char* parseLogicalAnd() {
     logTransition("parseLogicalAnd", peekAt(0).value, "parseLogicalNot");
-    parseLogicalNot();
+    const char* leftType = parseLogicalNot();
     if (TRACK1) {
         printf("parseLogicalNot: DONE\n");
         fprintf(out, "parseLogicalNot: DONE\n");
     }
     while (strcmp(peekAt(0).type, "LOGICAL") == 0 && strcmp(peekAt(0).value, "and") == 0) {
+        int line = peekAt(0).line;
         match("LOGICAL");
         logTransition("parseLogicalAnd", peekAt(0).value, "parseLogicalNot");
-        parseLogicalNot();
+        const char* rightType = parseLogicalNot();
         if (TRACK1) {
             printf("parseLogicalNot: DONE\n");
-            fprintf(out, "parseLogicalNot: DONE\n");
+            fprintf(out, "parseLogicalNot:  DONE\n");
         }
+
+
+        if (strcmp(leftType, "bool") != 0 && strcmp(leftType, "unknown") != 0) {
+            printf("Semantic Error at Line %d:  Logical 'and' requires boolean operands, got %s.\n", line, leftType);
+            fprintf(out, "Semantic Error at Line %d: Logical 'and' requires boolean operands, got %s.\n", line, leftType);
+            errorCount++;
+        }
+        if (strcmp(rightType, "bool") != 0 && strcmp(rightType, "unknown") != 0) {
+            printf("Semantic Error at Line %d: Logical 'and' requires boolean operands, got %s.\n", line, rightType);
+            fprintf(out, "Semantic Error at Line %d: Logical 'and' requires boolean operands, got %s.\n", line, rightType);
+            errorCount++;
+        }
+        leftType = "bool";
     }
+    return leftType;
 }
 
-void parseLogicalNot() {
+const char* parseLogicalNot() {
     logTransition("parseLogicalNot", peekAt(0).value, "dispatching");
     if (strcmp(peekAt(0).type, "LOGICAL") == 0 && strcmp(peekAt(0).value, "not") == 0) {
+        int line = peekAt(0).line;
         match("LOGICAL");
         logTransition("parseLogicalNot", peekAt(0).value, "parseLogicalNot");
-        parseLogicalNot();
+        const char* operandType = parseLogicalNot();
         if (TRACK1) {
             printf("parseLogicalNot: DONE\n");
             fprintf(out, "parseLogicalNot: DONE\n");
         }
-        return;
+
+
+        if (strcmp(operandType, "bool") != 0 && strcmp(operandType, "unknown") != 0) {
+            printf("Semantic Error at Line %d: Cannot use 'not' on %s.\n", line, operandType);
+            fprintf(out, "Semantic Error at Line %d: Cannot use 'not' on %s.\n", line, operandType);
+            errorCount++;
+        }
+        return "bool";
     }
+
     logTransition("parseLogicalNot", peekAt(0).value, "parseRelational");
-    parseRelational();
+    const char* type = parseRelational();
     if (TRACK1) {
         printf("parseRelational: DONE\n");
         fprintf(out, "parseRelational: DONE\n");
     }
-
+    return type;
 }
 
-void parseRelational() {
-
+const char* parseRelational() {
     logTransition("parseRelational", peekAt(0).value, "parseArithmetic");
-    parseArithmetic();
+    const char* leftType = parseArithmetic();
+
+    if (TRACK1) {
+        printf("parseArithmetic: DONE\n");
+        fprintf(out, "parseArithmetic: DONE\n");
+    }
+
+
+    if (strcmp(peekAt(0).type, "REL_OP") != 0) {
+
+        return leftType;
+    }
+
+
     while (strcmp(peekAt(0).type, "REL_OP") == 0) {
         match("REL_OP");
         logTransition("parseRelational", peekAt(0).value, "parseArithmetic");
@@ -1383,73 +1443,156 @@ void parseRelational() {
             fprintf(out, "parseArithmetic: DONE\n");
         }
     }
+
+
+    return "bool";
 }
 
-void parseArithmetic() {
+const char* parseArithmetic() {
     logTransition("parseArithmetic", peekAt(0).value, "parseTerm");
-    parseTerm();
+    const char* leftType = parseTerm();
     if (TRACK1) {
         printf("parseTerm: DONE\n");
         fprintf(out, "parseTerm: DONE\n");
     }
+
     while (strcmp(peekAt(0).type, "ARITH_OP") == 0 &&
           (strcmp(peekAt(0).value, "+") == 0 || strcmp(peekAt(0).value, "-") == 0)) {
+
+        char op[10];
+        strncpy(op, peekAt(0).value, sizeof(op) - 1);
+        op[sizeof(op) - 1] = '\0';
+        int line = peekAt(0).line;
+
         match("ARITH_OP");
         logTransition("parseArithmetic", peekAt(0).value, "parseTerm");
-        parseTerm();
+        const char* rightType = parseTerm();
         if (TRACK1) {
-            printf("parseTerm: DONE\n");
-            fprintf(out, "parseTerm: DONE\n");
+            printf("parseTerm:  DONE\n");
+            fprintf(out, "parseTerm:  DONE\n");
+        }
+
+        // TYPE CHECK:  5 + "hello" should error
+        if (strcmp(op, "+") == 0) {
+            // String concatenation allowed
+            if (strcmp(leftType, "str") == 0 && strcmp(rightType, "str") == 0) {
+                leftType = "str";
+            } else if (strcmp(leftType, "str") == 0 || strcmp(rightType, "str") == 0) {
+                printf("Semantic Error at Line %d: Cannot add %s and %s.\n", line, leftType, rightType);
+                fprintf(out, "Semantic Error at Line %d: Cannot add %s and %s.\n", line, leftType, rightType);
+                errorCount++;
+            } else {
+                // Numeric addition - promote to float if needed
+                if (strcmp(leftType, "float") == 0 || strcmp(rightType, "float") == 0) {
+                    leftType = "float";
+                }
+            }
+        } else if (strcmp(op, "-") == 0) {
+            // Subtraction only works on numbers
+            if (strcmp(leftType, rightType) != 0) {
+                printf("Semantic Error at Line %d: Cannot subtract %s and %s.\n", line, leftType, rightType);
+                fprintf(out, "Semantic Error at Line %d: Cannot subtract %s and %s.\n", line, leftType, rightType);
+                errorCount++;
+            } else if (strcmp(leftType, "float") == 0 || strcmp(rightType, "float") == 0) {
+                leftType = "float";
+            }
         }
     }
+
+    return leftType;
 }
 
-void parseTerm() {
+const char* parseTerm() {
     logTransition("parseTerm", peekAt(0).value, "parseFactor");
-    parseFactor();
+    const char* leftType = parseFactor();
     if (TRACK1) {
         printf("parseFactor: DONE\n");
         fprintf(out, "parseFactor: DONE\n");
     }
+
     while (strcmp(peekAt(0).type, "ARITH_OP") == 0 &&
           (strcmp(peekAt(0).value, "*") == 0 ||
            strcmp(peekAt(0).value, "/") == 0 ||
            strcmp(peekAt(0).value, "%") == 0 ||
            strcmp(peekAt(0).value, "//") == 0)) {
+
+        char op[10];
+        strncpy(op, peekAt(0).value, sizeof(op) - 1);
+        op[sizeof(op) - 1] = '\0';
+        int line = peekAt(0).line;
+
         match("ARITH_OP");
         logTransition("parseTerm", peekAt(0).value, "parseFactor");
-        parseFactor();
+        const char* rightType = parseFactor();
         if (TRACK1) {
-            printf("parseFactor: DONE\n");
-            fprintf(out, "parseFactor: DONE\n");
+            printf("parseFactor:  DONE\n");
+            fprintf(out, "parseFactor:  DONE\n");
+        }
+
+        // TYPE CHECK:  Cannot multiply/divide incompatible types
+        if (strcmp(leftType, "str") == 0 || strcmp(rightType, "str") == 0) {
+            printf("Semantic Error at Line %d: Cannot use operator '%s' with string type.\n", line, op);
+            fprintf(out, "Semantic Error at Line %d: Cannot use operator '%s' with string type.\n", line, op);
+            errorCount++;
+        } else if (strcmp(leftType, "bool") == 0 || strcmp(rightType, "bool") == 0) {
+            printf("Semantic Error at Line %d: Cannot use operator '%s' with boolean type.\n", line, op);
+            fprintf(out, "Semantic Error at Line %d: Cannot use operator '%s' with boolean type.\n", line, op);
+            errorCount++;
+        }
+
+        // Result type promotion:  if either is float, result is float
+        if (strcmp(leftType, "float") == 0 || strcmp(rightType, "float") == 0) {
+            leftType = "float";
         }
     }
+
+    return leftType;
 }
 
-void parseFactor() {
+const char* parseFactor() {
     logTransition("parseFactor", peekAt(0).value, "dispatching");
+    const char* currentType = "unknown";
+
     if (strcmp(peekAt(0).type, "ARITH_OP") == 0 &&
         (strcmp(peekAt(0).value, "+") == 0 || strcmp(peekAt(0).value, "-") == 0)) {
         match("ARITH_OP");
         logTransition("parseFactor", peekAt(0).value, "parseFactor");
-        parseFactor();
+
+        const char* type = parseFactor();
         if (TRACK1) {
-            printf("parseFactor: DONE\n");
-            fprintf(out, "parseFactor: DONE\n");
+            printf("parseFactor:  DONE\n");
+            fprintf(out, "parseFactor:  DONE\n");
         }
-        return;
+        return type;
     }
+
     if (strcmp(peekAt(0).type, "INCREMENT") == 0 || strcmp(peekAt(0).type, "DECREMENT") == 0) {
         match(peekAt(0).type);
         match("IDENTIFIER");
-        return;
+        return "int";
     }
-    if (strcmp(peekAt(0).type, "NUMBER") == 0 ||
-        strcmp(peekAt(0).type, "STRING") == 0 ||
-        strcmp(peekAt(0).type, "CHAR") == 0 ||
-        strcmp(peekAt(0).type, "STRING_INTERP") == 0) {
+
+    if (strcmp(peekAt(0).type, "NUMBER") == 0) {
+        const char* numVal = peekAt(0).value;
         advance();
-    } else if (strcmp(peekAt(0).type, "IDENTIFIER") == 0) {
+        if (strchr(numVal, '.') != NULL) {
+            currentType = "float";
+        } else {
+            currentType = "int";
+        }
+    }
+
+    else if (strcmp(peekAt(0).type, "STRING") == 0 || strcmp(peekAt(0).type, "STRING_INTERP") == 0) {
+        advance();
+        currentType = "str";
+    }
+
+    else if (strcmp(peekAt(0).type, "CHAR") == 0) {
+        advance();
+        currentType = "char";
+    }
+
+    else if (strcmp(peekAt(0).type, "IDENTIFIER") == 0) {
 
         if (strcmp(peekAt(1).type, "LEFT_PAREN") == 0) {
             logTransition("parseFactor", peekAt(0).value, "parseFunctionCall");
@@ -1458,24 +1601,35 @@ void parseFactor() {
                 printf("parseFunctionCall: DONE\n");
                 fprintf(out, "parseFunctionCall: DONE\n");
             }
-        } else {
-            if (!isIdentifierDeclared(peekAt(0).value)) {
-                printf("Semantic Error at Line %d: Identifier '%s' is not declared\n", peekAt(0).line, peekAt(0).value);
-                fprintf(out, "Semantic Error at Line %d: Identifier '%s' is not declared\n", peekAt(0).line, peekAt(0).value);
+            currentType = "unknown";
+        }
+        // Check for Variable
+        else {
+            const char* varName = peekAt(0).value;
+            if (!isIdentifierDeclared(varName)) {
+                printf("Semantic Error at Line %d: Identifier '%s' is not declared\n", peekAt(0).line, varName);
+                fprintf(out, "Semantic Error at Line %d: Identifier '%s' is not declared\n", peekAt(0).line, varName);
                 errorCount++;
-            }
-            match("IDENTIFIER");
-            if (strcmp(peekAt(0).type, "INCREMENT") == 0 || strcmp(peekAt(0).type, "DECREMENT") == 0) {
-                advance();
+                match("IDENTIFIER");
+                currentType = "unknown";
+            } else {
+                currentType = getIdentifierType(varName);
+                match("IDENTIFIER");
+
+                if (strcmp(peekAt(0).type, "INCREMENT") == 0 || strcmp(peekAt(0).type, "DECREMENT") == 0) {
+                    advance();
+                }
             }
         }
-    } else if (strcmp(peekAt(0).type, "LEFT_PAREN") == 0) {
+    }
+
+    else if (strcmp(peekAt(0).type, "LEFT_PAREN") == 0) {
         match("LEFT_PAREN");
         logTransition("parseFactor", peekAt(0).value, "parseExpression");
-        parseExpression();
+        currentType = parseExpression(); // Recurse back to top
         if (TRACK1) {
-            printf("parseExpression: DONE\n");
-            fprintf(out, "parseExpression: DONE\n");
+            printf("parseExpression:  DONE\n");
+            fprintf(out, "parseExpression:  DONE\n");
         }
         if (strcmp(peekAt(0).type, "RIGHT_PAREN") != 0) {
             printf("Syntax Error at Line %d: Missing closing parenthesis\n", peekAt(0).line);
@@ -1483,34 +1637,57 @@ void parseFactor() {
             errorCount++;
             logTransition("parseFactor", peekAt(0).value, "errorRecovery");
             recover();
-            return;
+            return "unknown";
         }
         match("RIGHT_PAREN");
-    } else if (strcmp(peekAt(0).type, "RESERVED_WORD") == 0 &&
-               (strcmp(peekAt(0).value, "True") == 0 || strcmp(peekAt(0).value, "False") == 0 || strcmp(peekAt(0).value, "null") == 0)) {
+    }
+
+    else if (strcmp(peekAt(0).type, "RESERVED_WORD") == 0 &&
+        (strcmp(peekAt(0).value, "True") == 0 || strcmp(peekAt(0).value, "False") == 0)) {
         advance();
-    } else {
+        currentType = "bool";
+    }
+
+    else if (strcmp(peekAt(0).type, "RESERVED_WORD") == 0 && strcmp(peekAt(0).value, "null") == 0) {
+        advance();
+        currentType = "null";
+    }
+
+    else {
         printf("Syntax Error at Line %d: Missing operand - Expected NUMBER, IDENTIFIER, STRING, or '(' but got %s (%s)\n", peekAt(0).line, peekAt(0).type, peekAt(0).value);
         fprintf(out, "Syntax Error at Line %d: Missing operand - Expected NUMBER, IDENTIFIER, STRING, or '(' but got %s (%s)\n", peekAt(0).line, peekAt(0).type, peekAt(0).value);
         errorCount++;
         logTransition("parseFactor", peekAt(0).value, "errorRecovery");
         recover();
-        return;
+        return "unknown";
     }
+
     if (strcmp(peekAt(0).type, "ARITH_OP") == 0 && strcmp(peekAt(0).value, "**") == 0) {
+        int line = peekAt(0).line;
         match("ARITH_OP");
+
         logTransition("parseFactor", peekAt(0).value, "parseFactor");
-        parseFactor();
+        const char* rightType = parseFactor();
+
         if (TRACK1) {
             printf("parseFactor: DONE\n");
             fprintf(out, "parseFactor: DONE\n");
         }
+
+        if (strcmp(currentType, "str") == 0 || strcmp(rightType, "str") == 0) {
+            printf("Semantic Error at Line %d: Cannot use exponentiation on string.\n", line);
+            fprintf(out, "Semantic Error at Line %d: Cannot use exponentiation on string.\n", line);
+            errorCount++;
+        }
+
+        if (strcmp(currentType, "float") == 0 || strcmp(rightType, "float") == 0) {
+            return "float";
+        }
+        return "int";
     }
+
+    return currentType;
 }
-
-
-
-
 
 int main() {
     tokenFile = fopen("Symbol_Table.txt", "r");
