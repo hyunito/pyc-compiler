@@ -45,12 +45,19 @@ Example output:
 
 
 KEYWORD(main)
+
 RESERVED_WORD(int)
+
 IDENTIFIER(a)
+
 NUMBER(10)
+
 REL_OP(==)
+
 LOGICAL(and)
+
 STRING(Hello World)
+
 SEMICOLON(;)
 
 
@@ -200,5 +207,6 @@ All checks performed are structural only.
 ## 9. Conclusion
 
 This project implements a complete compiler front-end consisting of a **pure FSM-based lexical analyzer** and a **recursive descent syntax analyzer equivalent to a pushdown automaton**. The design strictly follows compiler theory principles and satisfies the course requirements.
+
 
 
