@@ -4,6 +4,7 @@
 #define MAX_IDENTIFIERS 1000
 #define TRACK 1
 #define TRACK1 1
+#define MAX_PARAMS 20
 
 typedef struct {
     char type[50];
@@ -16,6 +17,8 @@ typedef struct {
     char type[20];
     int isDeclared;
     char value[256];
+    int paramCount;
+    char paramTypes[MAX_PARAMS][20];
 } Identifier;
 
 Token peekAt(int offset);
@@ -41,6 +44,16 @@ int previousLine = 1;
 Identifier symbolTable[MAX_IDENTIFIERS];
 int symbolCount = 0;
 
+char currentFunctionReturnType[20] = "none";
+
+Identifier* getIdentifier(const char* name) {
+    for (int i = 0; i < symbolCount; i++) {
+        if (strcmp(symbolTable[i].name, name) == 0) {
+            return &symbolTable[i];
+        }
+    }
+    return NULL;
+}
 static Token EOF_TOKEN = { "EOF", "" };
 
 int isAtEnd() {
@@ -396,14 +409,35 @@ void parseStatement() {
     }
 
     if (isKeyword("return")) {
+        int line = peekAt(0).line;
         match("KEYWORD");
-        if (strcmp(peekAt(0). type, "SEMICOLON") != 0) {
-            logTransition("parseStatement", peekAt(0).value, "parseExpression");
-            parseExpression();
-            if (TRACK1) {
-                printf("parseExpression: DONE\n");
-                fprintf(out, "parseExpression: DONE\n");
+
+        if (strcmp(currentFunctionReturnType, "void") == 0) {
+            if (strcmp(peekAt(0).type, "SEMICOLON") != 0) {
+                printf("Semantic Error at Line %d: Void function cannot return a value.\n", line);
+                fprintf(out, "Semantic Error at Line %d: Void function cannot return a value.\n", line);
+                errorCount++;
+                parseExpression(); 
             }
+        } 
+        else if (strcmp(currentFunctionReturnType, "none") != 0) { 
+             if (strcmp(peekAt(0).type, "SEMICOLON") == 0) {
+                 printf("Semantic Error at Line %d: Non-void function '%s' must return a value.\n", line, currentFunctionReturnType);
+                 fprintf(out, "Semantic Error at Line %d: Non-void function '%s' must return a value.\n", line, currentFunctionReturnType);
+                 errorCount++;
+             } else {
+                 const char* exprType = parseExpression();
+                 if (strcmp(exprType, currentFunctionReturnType) != 0 && strcmp(exprType, "unknown") != 0) {
+                     if (!(strcmp(currentFunctionReturnType, "float") == 0 && strcmp(exprType, "int") == 0)) {
+                         printf("Semantic Error at Line %d: Return type mismatch. Expected %s, got %s.\n", line, currentFunctionReturnType, exprType);
+                         fprintf(out, "Semantic Error at Line %d: Return type mismatch. Expected %s, got %s.\n", line, currentFunctionReturnType, exprType);
+                         errorCount++;
+                     }
+                 }
+             }
+        }
+        else {
+             if (strcmp(peekAt(0).type, "SEMICOLON") != 0) parseExpression();
         }
         match("SEMICOLON");
         return;
@@ -1234,36 +1268,80 @@ void parseOutput() {
 
 void parseFunctionCall() {
     logTransition("parseFunctionCall", peekAt(0).value, "dispatching");
+    
+    char funcName[100];
+    strncpy(funcName, peekAt(0).value, sizeof(funcName)-1);
+    funcName[sizeof(funcName)-1] = '\0';
+    int line = peekAt(0).line;
+
     match("IDENTIFIER");
     match("LEFT_PAREN");
+
+    Identifier* funcId = getIdentifier(funcName);
+    int argCount = 0;
+
+    if (!funcId) {
+        printf("Semantic Error at Line %d: Function '%s' is not declared.\n", line, funcName);
+        fprintf(out, "Semantic Error at Line %d: Function '%s' is not declared.\n", line, funcName);
+        errorCount++;
+    }
+
     if (strcmp(peekAt(0).type, "RIGHT_PAREN") != 0) {
-        logTransition("parseFunctionCall", peekAt(0).value, "parseExpression");
-        parseExpression();
-        if (TRACK1) {
-            printf("parseExpression: DONE\n");
-            fprintf(out, "parseExpression: DONE\n");
+    
+        const char* argType = parseExpression();
+        
+        if (funcId && argCount < funcId->paramCount) {
+             const char* expected = funcId->paramTypes[argCount];
+             if (strcmp(argType, expected) != 0 && strcmp(argType, "unknown") != 0) {
+                  if (!(strcmp(expected, "float") == 0 && strcmp(argType, "int") == 0)) {
+                       printf("Semantic Error at Line %d: Argument %d expects %s, got %s.\n", line, argCount+1, expected, argType);
+                       fprintf(out, "Semantic Error at Line %d: Argument %d expects %s, got %s.\n", line, argCount+1, expected, argType);
+                       errorCount++;
+                  }
+             }
         }
+        argCount++;
+
         while (strcmp(peekAt(0).type, "COMMA") == 0) {
             match("COMMA");
-            logTransition("parseFunctionCall", peekAt(0).value, "parseExpression");
-            parseExpression();
-            if (TRACK1) {
-                printf("parseExpression: DONE\n");
-                fprintf(out, "parseExpression: DONE\n");
+            argType = parseExpression();
+            
+            if (funcId && argCount < funcId->paramCount) {
+                const char* expected = funcId->paramTypes[argCount];
+                if (strcmp(argType, expected) != 0 && strcmp(argType, "unknown") != 0) {
+                     if (!(strcmp(expected, "float") == 0 && strcmp(argType, "int") == 0)) {
+                        printf("Semantic Error at Line %d: Argument %d expects %s, got %s.\n", line, argCount+1, expected, argType);
+                        fprintf(out, "Semantic Error at Line %d: Argument %d expects %s, got %s.\n", line, argCount+1, expected, argType);
+                        errorCount++;
+                     }
+                }
             }
+            argCount++;
         }
     }
     match("RIGHT_PAREN");
+
+    if (funcId) {
+        if (argCount != funcId->paramCount) {
+            printf("Semantic Error at Line %d: Function '%s' expects %d arguments, got %d.\n", line, funcName, funcId->paramCount, argCount);
+            fprintf(out, "Semantic Error at Line %d: Function '%s' expects %d arguments, got %d.\n", line, funcName, funcId->paramCount, argCount);
+            errorCount++;
+        }
+    }
 }
 
 void parseFunctionDef() {
     logTransition("parseFunctionDef", peekAt(0).value, "dispatching");
+    
+    char returnType[20];
+    strncpy(returnType, peekAt(0).value, sizeof(returnType)-1);
+    returnType[sizeof(returnType)-1] = '\0';
     match("RESERVED_WORD");
+
     if (strcmp(peekAt(0).type, "IDENTIFIER") != 0) {
         printf("Syntax Error at Line %d: Expected function name.\n", peekAt(0).line);
         fprintf(out, "Syntax Error at Line %d: Expected function name.\n", peekAt(0).line);
         errorCount++;
-        logTransition("parseFunctionDef", peekAt(0).value, "errorRecovery");
         recover();
         return;
     }
@@ -1271,33 +1349,47 @@ void parseFunctionDef() {
     char fname[100];
     strncpy(fname, peekAt(0).value, sizeof(fname)-1);
     fname[sizeof(fname)-1] = '\0';
-    match("IDENTIFIER");
+    
+    declareIdentifier(fname, returnType); 
+    
+    strncpy(currentFunctionReturnType, returnType, sizeof(currentFunctionReturnType)-1);
 
+    Identifier* funcId = getIdentifier(fname);
+    if (funcId) funcId->paramCount = 0;
+
+    match("IDENTIFIER");
     match("LEFT_PAREN");
 
-    if (!(strcmp(peekAt(0).type, "RIGHT_PAREN") == 0)) {
+    if (strcmp(peekAt(0).type, "RIGHT_PAREN") != 0) {
         while (1) {
             if (strcmp(peekAt(0).type, "RESERVED_WORD") != 0 || !isTypeValue(peekAt(0).value)) {
                 printf("Syntax Error at Line %d: Expected type in parameter list.\n", peekAt(0).line);
                 fprintf(out, "Syntax Error at Line %d: Expected type in parameter list.\n", peekAt(0).line);
                 errorCount++;
-                logTransition("parseFunctionDef", peekAt(0).value, "errorRecovery");
                 recover();
                 return;
             }
+            
             char paramType[20];
             strncpy(paramType, peekAt(0).value, sizeof(paramType)-1);
             paramType[sizeof(paramType)-1] = '\0';
             match("RESERVED_WORD");
+
             if (strcmp(peekAt(0).type, "IDENTIFIER") != 0) {
                 printf("Syntax Error at Line %d: Expected parameter name.\n", peekAt(0).line);
                 fprintf(out, "Syntax Error at Line %d: Expected parameter name.\n", peekAt(0).line);
                 errorCount++;
-                logTransition("parseFunctionDef", peekAt(0).value, "errorRecovery");
                 recover();
                 return;
             }
-            declareIdentifier(peekAt(0).value, paramType);
+
+             declareIdentifier(peekAt(0).value, paramType);
+            
+            if (funcId && funcId->paramCount < MAX_PARAMS) {
+                strncpy(funcId->paramTypes[funcId->paramCount], paramType, 19);
+                funcId->paramCount++;
+            }
+
             match("IDENTIFIER");
 
             if (strcmp(peekAt(0).type, "COMMA") == 0) {
@@ -1310,6 +1402,8 @@ void parseFunctionDef() {
 
     logTransition("parseFunctionDef", peekAt(0).value, "parseBlock");
     parseBlock();
+    
+    strcpy(currentFunctionReturnType, "none");
 }
 
 const char* parseExpression() {
