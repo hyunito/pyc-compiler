@@ -1173,10 +1173,22 @@ void parseArrayAssignment() {
 
     match("LEFT_BRACKET");
 
+    // --- MODIFIED SECTION START ---
     if (strcmp(peekAt(0).type, "RIGHT_BRACKET") != 0) {
         logTransition("parseArrayAssignment", peekAt(0).value, "parseExpression");
-        parseExpression();
+
+        // 1. Capture the type inside the brackets
+        const char* indexType = parseExpression();
+
+        // 2. Check if it is an integer
+        if (strcmp(indexType, "int") != 0) {
+            printf("Semantic Error at Line %d: Array size/index must be an integer, but got %s.\n", peekAt(0).line, indexType);
+            fprintf(out, "Semantic Error at Line %d: Array size/index must be an integer, but got %s.\n", peekAt(0).line, indexType);
+            errorCount++;
+        }
     }
+    // --- MODIFIED SECTION END ---
+
     match("RIGHT_BRACKET");
 
     match("ASSIGN_OP");
@@ -1185,7 +1197,9 @@ void parseArrayAssignment() {
         match("LEFT_BRACE");
         if (strcmp(peekAt(0).type, "RIGHT_BRACE") != 0) {
             logTransition("parseArrayAssignment", peekAt(0).value, "parseExpression");
-            parseExpression();
+
+            parseExpression(); // (Note: You could also add type checks here if you passed the array type in)
+
             if (TRACK1) {
                 printf("parseExpression: DONE\n");
                 fprintf(out, "parseExpression: DONE\n");
@@ -1200,7 +1214,7 @@ void parseArrayAssignment() {
                 }
             }
         }
-        match("RIGHT_BRACE");
+        match("RIGHT_BRACE"); // Note: You probably meant match("RIGHT_BRACE") here?
     } else {
         logTransition("parseArrayAssignment", peekAt(0).value, "parseExpression");
         parseExpression();
@@ -1539,7 +1553,6 @@ const char* parseLogicalAnd() {
 }
 
 const char* parseLogicalNot() {
-    logTransition("parseLogicalNot", peekAt(0).value, "dispatching");
     if (strcmp(peekAt(0).type, "LOGICAL") == 0 && strcmp(peekAt(0).value, "not") == 0) {
         int line = peekAt(0).line;
         match("LOGICAL");

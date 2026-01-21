@@ -9,7 +9,6 @@ ASSIGN_OP --3--> parseExpression
 parseExpression --3--> parseLogicalOr
 parseLogicalOr --3--> parseLogicalAnd
 parseLogicalAnd --3--> parseLogicalNot
-parseLogicalNot --3--> dispatching
 parseLogicalNot --3--> parseRelational
 parseRelational --3--> parseArithmetic
 parseArithmetic --3--> parseTerm
@@ -32,7 +31,6 @@ ASSIGN_OP --10--> parseExpression
 parseExpression --10--> parseLogicalOr
 parseLogicalOr --10--> parseLogicalAnd
 parseLogicalAnd --10--> parseLogicalNot
-parseLogicalNot --10--> dispatching
 parseLogicalNot --10--> parseRelational
 parseRelational --10--> parseArithmetic
 parseArithmetic --10--> parseTerm
@@ -51,7 +49,6 @@ ASSIGN_OP --5--> parseExpression
 parseExpression --5--> parseLogicalOr
 parseLogicalOr --5--> parseLogicalAnd
 parseLogicalAnd --5--> parseLogicalNot
-parseLogicalNot --5--> dispatching
 parseLogicalNot --5--> parseRelational
 parseRelational --5--> parseArithmetic
 parseArithmetic --5--> parseTerm
@@ -67,6 +64,12 @@ parseLogicalOr:  DONE
 parseExpression: DONE
 parseDeclaration: DONE
 parseStatement: DONE
+parseBlock --int--> parseStatement
+parseStatement --int--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --int--> parseDeclaration
+COMMA --c--> parseDeclaration
+parseDeclaration: DONE
+parseStatement: DONE
 parseBlock --str--> parseStatement
 parseStatement --str--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
 parseStatement --str--> parseDeclaration
@@ -79,7 +82,6 @@ ASSIGN_OP --A--> parseExpression
 parseExpression --A--> parseLogicalOr
 parseLogicalOr --A--> parseLogicalAnd
 parseLogicalAnd --A--> parseLogicalNot
-parseLogicalNot --A--> dispatching
 parseLogicalNot --A--> parseRelational
 parseRelational --A--> parseArithmetic
 parseArithmetic --A--> parseTerm
@@ -102,7 +104,6 @@ ASSIGN_OP --True--> parseExpression
 parseExpression --True--> parseLogicalOr
 parseLogicalOr --True--> parseLogicalAnd
 parseLogicalAnd --True--> parseLogicalNot
-parseLogicalNot --True--> dispatching
 parseLogicalNot --True--> parseRelational
 parseRelational --True--> parseArithmetic
 parseArithmetic --True--> parseTerm
@@ -125,7 +126,6 @@ ASSIGN_OP --False--> parseExpression
 parseExpression --False--> parseLogicalOr
 parseLogicalOr --False--> parseLogicalAnd
 parseLogicalAnd --False--> parseLogicalNot
-parseLogicalNot --False--> dispatching
 parseLogicalNot --False--> parseRelational
 parseRelational --False--> parseArithmetic
 parseArithmetic --False--> parseTerm
@@ -152,7 +152,6 @@ parseStatement --return--> If | While | For | Expression | Output | Input | Func
 parseExpression --f--> parseLogicalOr
 parseLogicalOr --f--> parseLogicalAnd
 parseLogicalAnd --f--> parseLogicalNot
-parseLogicalNot --f--> dispatching
 parseLogicalNot --f--> parseRelational
 parseRelational --f--> parseArithmetic
 parseArithmetic --f--> parseTerm
@@ -192,11 +191,26 @@ parseStatement --int--> If | While | For | Expression | Output | Input | Functio
 parseStatement --int--> parseDeclaration
 parseDeclaration --z--> parseArrayAssignment
 parseArrayAssignment --z--> dispatching
+parseArrayAssignment --4--> parseExpression
+parseExpression --4--> parseLogicalOr
+parseLogicalOr --4--> parseLogicalAnd
+parseLogicalAnd --4--> parseLogicalNot
+parseLogicalNot --4--> parseRelational
+parseRelational --4--> parseArithmetic
+parseArithmetic --4--> parseTerm
+parseTerm --4--> parseFactor
+parseFactor --4--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseArithmetic: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr:  DONE
 parseArrayAssignment --2--> parseExpression
 parseExpression --2--> parseLogicalOr
 parseLogicalOr --2--> parseLogicalAnd
 parseLogicalAnd --2--> parseLogicalNot
-parseLogicalNot --2--> dispatching
 parseLogicalNot --2--> parseRelational
 parseRelational --2--> parseArithmetic
 parseArithmetic --2--> parseTerm
@@ -214,7 +228,6 @@ parseArrayAssignment --3--> parseExpression
 parseExpression --3--> parseLogicalOr
 parseLogicalOr --3--> parseLogicalAnd
 parseLogicalAnd --3--> parseLogicalNot
-parseLogicalNot --3--> dispatching
 parseLogicalNot --3--> parseRelational
 parseRelational --3--> parseArithmetic
 parseArithmetic --3--> parseTerm
@@ -232,7 +245,6 @@ parseArrayAssignment --4--> parseExpression
 parseExpression --4--> parseLogicalOr
 parseLogicalOr --4--> parseLogicalAnd
 parseLogicalAnd --4--> parseLogicalNot
-parseLogicalNot --4--> dispatching
 parseLogicalNot --4--> parseRelational
 parseRelational --4--> parseArithmetic
 parseArithmetic --4--> parseTerm
@@ -249,28 +261,106 @@ parseExpression: DONE
 parseArrayAssignment: DONE
 parseDeclaration: DONE
 parseStatement: DONE
-parseBlock --output--> parseStatement
-parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-parseStatement --output--> parseOutput
-parseOutput --output--> dispatching
-parseOutput: DONE
-parseStatement: DONE
 parseBlock --a--> parseStatement
 parseStatement --a--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
 parseStatement --a--> parseInput
 parseInput --a--> dispatching
 parseInput: DONE
 parseStatement: DONE
+parseBlock --x--> parseStatement
+parseStatement --x--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --x--> parseAssignment
+parseAssignment: DONE
+parseAssignment --x--> dispatching
+parseAssignment --y--> parseExpression
+parseExpression --y--> parseLogicalOr
+parseLogicalOr --y--> parseLogicalAnd
+parseLogicalAnd --y--> parseLogicalNot
+parseLogicalNot --y--> parseRelational
+parseRelational --y--> parseArithmetic
+parseArithmetic --y--> parseTerm
+parseTerm --y--> parseFactor
+parseFactor --y--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseArithmetic: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr:  DONE
+parseExpression: DONE
+parseStatement: DONE
+parseBlock --b--> parseStatement
+parseStatement --b--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --b--> parseAssignment
+parseAssignment: DONE
+parseAssignment --b--> dispatching
+parseAssignment --42--> parseExpression
+parseExpression --42--> parseLogicalOr
+parseLogicalOr --42--> parseLogicalAnd
+parseLogicalAnd --42--> parseLogicalNot
+parseLogicalNot --42--> parseRelational
+parseRelational --42--> parseArithmetic
+parseArithmetic --42--> parseTerm
+parseTerm --42--> parseFactor
+parseFactor --42--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseArithmetic: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr:  DONE
+parseExpression: DONE
+parseStatement: DONE
+parseBlock --c--> parseStatement
+parseStatement --c--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --c--> parseAssignment
+parseAssignment: DONE
+parseAssignment --c--> dispatching
+parseAssignment --b--> parseExpression
+parseExpression --b--> parseLogicalOr
+parseLogicalOr --b--> parseLogicalAnd
+parseLogicalAnd --b--> parseLogicalNot
+parseLogicalNot --b--> parseRelational
+parseRelational --b--> parseArithmetic
+parseArithmetic --b--> parseTerm
+parseTerm --b--> parseFactor
+parseFactor --b--> dispatching
+parseFactor: DONE
+parseTerm --2--> parseFactor
+parseFactor --2--> dispatching
+parseFactor:  DONE
+parseTerm: DONE
+parseArithmetic --5--> parseTerm
+parseTerm --5--> parseFactor
+parseFactor --5--> dispatching
+parseFactor: DONE
+parseTerm:  DONE
+parseArithmetic: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr:  DONE
+parseExpression: DONE
+parseStatement: DONE
 parseBlock --output--> parseStatement
 parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
 parseStatement --output--> parseOutput
 parseOutput --output--> dispatching
 parseOutput: DONE
 parseStatement: DONE
-parseBlock --int--> parseStatement
-parseStatement --int--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-parseStatement --int--> parseDeclaration
-parseDeclaration: DONE
+parseBlock --output--> parseStatement
+parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --output--> parseOutput
+parseOutput --output--> dispatching
+parseOutput: DONE
+parseStatement: DONE
+parseBlock --output--> parseStatement
+parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --output--> parseOutput
+parseOutput --output--> dispatching
+parseOutput: DONE
 parseStatement: DONE
 parseBlock --c--> parseStatement
 parseStatement --c--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
@@ -281,7 +371,6 @@ parseAssignment --x--> parseExpression
 parseExpression --x--> parseLogicalOr
 parseLogicalOr --x--> parseLogicalAnd
 parseLogicalAnd --x--> parseLogicalNot
-parseLogicalNot --x--> dispatching
 parseLogicalNot --x--> parseRelational
 parseRelational --x--> parseArithmetic
 parseArithmetic --x--> parseTerm
@@ -310,7 +399,6 @@ parseAssignment --x--> parseExpression
 parseExpression --x--> parseLogicalOr
 parseLogicalOr --x--> parseLogicalAnd
 parseLogicalAnd --x--> parseLogicalNot
-parseLogicalNot --x--> dispatching
 parseLogicalNot --x--> parseRelational
 parseRelational --x--> parseArithmetic
 parseArithmetic --x--> parseTerm
@@ -339,7 +427,6 @@ parseAssignment --x--> parseExpression
 parseExpression --x--> parseLogicalOr
 parseLogicalOr --x--> parseLogicalAnd
 parseLogicalAnd --x--> parseLogicalNot
-parseLogicalNot --x--> dispatching
 parseLogicalNot --x--> parseRelational
 parseRelational --x--> parseArithmetic
 parseArithmetic --x--> parseTerm
@@ -371,7 +458,6 @@ parseAssignment --x--> parseExpression
 parseExpression --x--> parseLogicalOr
 parseLogicalOr --x--> parseLogicalAnd
 parseLogicalAnd --x--> parseLogicalNot
-parseLogicalNot --x--> dispatching
 parseLogicalNot --x--> parseRelational
 parseRelational --x--> parseArithmetic
 parseArithmetic --x--> parseTerm
@@ -403,7 +489,6 @@ parseAssignment --x--> parseExpression
 parseExpression --x--> parseLogicalOr
 parseLogicalOr --x--> parseLogicalAnd
 parseLogicalAnd --x--> parseLogicalNot
-parseLogicalNot --x--> dispatching
 parseLogicalNot --x--> parseRelational
 parseRelational --x--> parseArithmetic
 parseArithmetic --x--> parseTerm
@@ -435,7 +520,6 @@ parseAssignment --x--> parseExpression
 parseExpression --x--> parseLogicalOr
 parseLogicalOr --x--> parseLogicalAnd
 parseLogicalAnd --x--> parseLogicalNot
-parseLogicalNot --x--> dispatching
 parseLogicalNot --x--> parseRelational
 parseRelational --x--> parseArithmetic
 parseArithmetic --x--> parseTerm
@@ -467,7 +551,6 @@ parseAssignment --x--> parseExpression
 parseExpression --x--> parseLogicalOr
 parseLogicalOr --x--> parseLogicalAnd
 parseLogicalAnd --x--> parseLogicalNot
-parseLogicalNot --x--> dispatching
 parseLogicalNot --x--> parseRelational
 parseRelational --x--> parseArithmetic
 parseArithmetic --x--> parseTerm
@@ -510,7 +593,6 @@ parseAssignment --add--> parseExpression
 parseExpression --add--> parseLogicalOr
 parseLogicalOr --add--> parseLogicalAnd
 parseLogicalAnd --add--> parseLogicalNot
-parseLogicalNot --add--> dispatching
 parseLogicalNot --add--> parseRelational
 parseRelational --add--> parseArithmetic
 parseArithmetic --add--> parseTerm
@@ -521,7 +603,6 @@ parseFunctionCall --add--> dispatching
 parseExpression --10--> parseLogicalOr
 parseLogicalOr --10--> parseLogicalAnd
 parseLogicalAnd --10--> parseLogicalNot
-parseLogicalNot --10--> dispatching
 parseLogicalNot --10--> parseRelational
 parseRelational --10--> parseArithmetic
 parseArithmetic --10--> parseTerm
@@ -537,7 +618,6 @@ parseLogicalOr:  DONE
 parseExpression --20--> parseLogicalOr
 parseLogicalOr --20--> parseLogicalAnd
 parseLogicalAnd --20--> parseLogicalNot
-parseLogicalNot --20--> dispatching
 parseLogicalNot --20--> parseRelational
 parseRelational --20--> parseArithmetic
 parseArithmetic --20--> parseTerm
@@ -571,10 +651,97 @@ parseStatement --if--> If | While | For | Expression | Output | Input | Function
 parseStatement --if--> parseIf
 parseIf --if--> condition
 parseIf --condition--> parseExpression
+parseExpression --b--> parseLogicalOr
+parseLogicalOr --b--> parseLogicalAnd
+parseLogicalAnd --b--> parseLogicalNot
+parseLogicalNot --b--> parseRelational
+parseRelational --b--> parseArithmetic
+parseArithmetic --b--> parseTerm
+parseTerm --b--> parseFactor
+parseFactor --b--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseArithmetic: DONE
+parseRelational --10--> parseArithmetic
+parseArithmetic --10--> parseTerm
+parseTerm --10--> parseFactor
+parseFactor --10--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseArithmetic: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr:  DONE
+condition --{--> Block | Statement
+parseIf --{--> parseBlock
+parseBlock --{--> dispatching
+parseBlock --output--> parseStatement
+parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --output--> parseOutput
+parseOutput --output--> dispatching
+parseOutput: DONE
+parseStatement: DONE
+parseBlock: DONE
+parseIf: DONE
+parseStatement: DONE
+parseBlock --if--> parseStatement
+parseStatement --if--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --if--> parseIf
+parseIf --if--> condition
+parseIf --condition--> parseExpression
+parseExpression --c--> parseLogicalOr
+parseLogicalOr --c--> parseLogicalAnd
+parseLogicalAnd --c--> parseLogicalNot
+parseLogicalNot --c--> parseRelational
+parseRelational --c--> parseArithmetic
+parseArithmetic --c--> parseTerm
+parseTerm --c--> parseFactor
+parseFactor --c--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseArithmetic: DONE
+parseRelational --30--> parseArithmetic
+parseArithmetic --30--> parseTerm
+parseTerm --30--> parseFactor
+parseFactor --30--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseArithmetic: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr:  DONE
+condition --{--> Block | Statement
+parseIf --{--> parseBlock
+parseBlock --{--> dispatching
+parseBlock --output--> parseStatement
+parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --output--> parseOutput
+parseOutput --output--> dispatching
+parseOutput: DONE
+parseStatement: DONE
+parseBlock: DONE
+parseIf --else--> Block | Statement
+parseIf --{--> parseBlock
+parseBlock --{--> dispatching
+parseBlock --output--> parseStatement
+parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --output--> parseOutput
+parseOutput --output--> dispatching
+parseOutput: DONE
+parseStatement: DONE
+parseBlock: DONE
+parseIf: DONE
+parseStatement: DONE
+parseBlock --if--> parseStatement
+parseStatement --if--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --if--> parseIf
+parseIf --if--> condition
+parseIf --condition--> parseExpression
 parseExpression --x--> parseLogicalOr
 parseLogicalOr --x--> parseLogicalAnd
 parseLogicalAnd --x--> parseLogicalNot
-parseLogicalNot --x--> dispatching
 parseLogicalNot --x--> parseRelational
 parseRelational --x--> parseArithmetic
 parseArithmetic --x--> parseTerm
@@ -593,9 +760,7 @@ parseArithmetic: DONE
 parseRelational: DONE
 parseLogicalNot: DONE
 parseLogicalAnd --not--> parseLogicalNot
-parseLogicalNot --not--> dispatching
 parseLogicalNot --isFalse--> parseLogicalNot
-parseLogicalNot --isFalse--> dispatching
 parseLogicalNot --isFalse--> parseRelational
 parseRelational --isFalse--> parseArithmetic
 parseArithmetic --isFalse--> parseTerm
@@ -623,7 +788,6 @@ parseIf --else if condition--> parseExpression
 parseExpression --x--> parseLogicalOr
 parseLogicalOr --x--> parseLogicalAnd
 parseLogicalAnd --x--> parseLogicalNot
-parseLogicalNot --x--> dispatching
 parseLogicalNot --x--> parseRelational
 parseRelational --x--> parseArithmetic
 parseArithmetic --x--> parseTerm
@@ -644,7 +808,6 @@ parseLogicalNot: DONE
 parseLogicalAnd: DONE
 parseLogicalOr --isTrue--> parseLogicalAnd
 parseLogicalAnd --isTrue--> parseLogicalNot
-parseLogicalNot --isTrue--> dispatching
 parseLogicalNot --isTrue--> parseRelational
 parseRelational --isTrue--> parseArithmetic
 parseArithmetic --isTrue--> parseTerm
@@ -678,86 +841,6 @@ parseStatement: DONE
 parseBlock: DONE
 parseIf: DONE
 parseStatement: DONE
-parseBlock --if--> parseStatement
-parseStatement --if--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-parseStatement --if--> parseIf
-parseIf --if--> condition
-parseIf --condition--> parseExpression
-parseExpression --c--> parseLogicalOr
-parseLogicalOr --c--> parseLogicalAnd
-parseLogicalAnd --c--> parseLogicalNot
-parseLogicalNot --c--> dispatching
-parseLogicalNot --c--> parseRelational
-parseRelational --c--> parseArithmetic
-parseArithmetic --c--> parseTerm
-parseTerm --c--> parseFactor
-parseFactor --c--> dispatching
-parseFactor: DONE
-parseTerm: DONE
-parseArithmetic: DONE
-parseRelational --30--> parseArithmetic
-parseArithmetic --30--> parseTerm
-parseTerm --30--> parseFactor
-parseFactor --30--> dispatching
-parseFactor: DONE
-parseTerm: DONE
-parseArithmetic: DONE
-parseRelational: DONE
-parseLogicalNot: DONE
-parseLogicalAnd: DONE
-parseLogicalOr:  DONE
-condition --{--> Block | Statement
-parseIf --{--> parseBlock
-parseBlock --{--> dispatching
-parseBlock --output--> parseStatement
-parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-parseStatement --output--> parseOutput
-parseOutput --output--> dispatching
-parseOutput: DONE
-parseStatement: DONE
-parseBlock: DONE
-parseIf: DONE
-parseStatement: DONE
-parseBlock --if--> parseStatement
-parseStatement --if--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-parseStatement --if--> parseIf
-parseIf --if--> condition
-parseIf --condition--> parseExpression
-parseExpression --c--> parseLogicalOr
-parseLogicalOr --c--> parseLogicalAnd
-parseLogicalAnd --c--> parseLogicalNot
-parseLogicalNot --c--> dispatching
-parseLogicalNot --c--> parseRelational
-parseRelational --c--> parseArithmetic
-parseArithmetic --c--> parseTerm
-parseTerm --c--> parseFactor
-parseFactor --c--> dispatching
-parseFactor: DONE
-parseTerm: DONE
-parseArithmetic: DONE
-parseRelational --0--> parseArithmetic
-parseArithmetic --0--> parseTerm
-parseTerm --0--> parseFactor
-parseFactor --0--> dispatching
-parseFactor: DONE
-parseTerm: DONE
-parseArithmetic: DONE
-parseRelational: DONE
-parseLogicalNot: DONE
-parseLogicalAnd: DONE
-parseLogicalOr:  DONE
-condition --{--> Block | Statement
-parseIf --{--> parseBlock
-parseBlock --{--> dispatching
-parseBlock --output--> parseStatement
-parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-parseStatement --output--> parseOutput
-parseOutput --output--> dispatching
-parseOutput: DONE
-parseStatement: DONE
-parseBlock: DONE
-parseIf: DONE
-parseStatement: DONE
 parseBlock --int--> parseStatement
 parseStatement --int--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
 parseStatement --int--> parseDeclaration
@@ -765,7 +848,6 @@ ASSIGN_OP --0--> parseExpression
 parseExpression --0--> parseLogicalOr
 parseLogicalOr --0--> parseLogicalAnd
 parseLogicalAnd --0--> parseLogicalNot
-parseLogicalNot --0--> dispatching
 parseLogicalNot --0--> parseRelational
 parseRelational --0--> parseArithmetic
 parseArithmetic --0--> parseTerm
@@ -788,7 +870,6 @@ parseWhile --condition--> parseExpression
 parseExpression --i--> parseLogicalOr
 parseLogicalOr --i--> parseLogicalAnd
 parseLogicalAnd --i--> parseLogicalNot
-parseLogicalNot --i--> dispatching
 parseLogicalNot --i--> parseRelational
 parseRelational --i--> parseArithmetic
 parseArithmetic --i--> parseTerm
@@ -826,7 +907,6 @@ parseAssignment --i--> parseExpression
 parseExpression --i--> parseLogicalOr
 parseLogicalOr --i--> parseLogicalAnd
 parseLogicalAnd --i--> parseLogicalNot
-parseLogicalNot --i--> dispatching
 parseLogicalNot --i--> parseRelational
 parseRelational --i--> parseArithmetic
 parseArithmetic --i--> parseTerm
@@ -854,7 +934,6 @@ parseIf --condition--> parseExpression
 parseExpression --i--> parseLogicalOr
 parseLogicalOr --i--> parseLogicalAnd
 parseLogicalAnd --i--> parseLogicalNot
-parseLogicalNot --i--> dispatching
 parseLogicalNot --i--> parseRelational
 parseRelational --i--> parseArithmetic
 parseArithmetic --i--> parseTerm
@@ -894,7 +973,6 @@ ASSIGN_OP --0--> parseExpression
 parseExpression --0--> parseLogicalOr
 parseLogicalOr --0--> parseLogicalAnd
 parseLogicalAnd --0--> parseLogicalNot
-parseLogicalNot --0--> dispatching
 parseLogicalNot --0--> parseRelational
 parseRelational --0--> parseArithmetic
 parseArithmetic --0--> parseTerm
@@ -917,7 +995,6 @@ parseWhile --condition--> parseExpression
 parseExpression --outer--> parseLogicalOr
 parseLogicalOr --outer--> parseLogicalAnd
 parseLogicalAnd --outer--> parseLogicalNot
-parseLogicalNot --outer--> dispatching
 parseLogicalNot --outer--> parseRelational
 parseRelational --outer--> parseArithmetic
 parseArithmetic --outer--> parseTerm
@@ -947,7 +1024,6 @@ ASSIGN_OP --0--> parseExpression
 parseExpression --0--> parseLogicalOr
 parseLogicalOr --0--> parseLogicalAnd
 parseLogicalAnd --0--> parseLogicalNot
-parseLogicalNot --0--> dispatching
 parseLogicalNot --0--> parseRelational
 parseRelational --0--> parseArithmetic
 parseArithmetic --0--> parseTerm
@@ -970,7 +1046,6 @@ parseWhile --condition--> parseExpression
 parseExpression --inner--> parseLogicalOr
 parseLogicalOr --inner--> parseLogicalAnd
 parseLogicalAnd --inner--> parseLogicalNot
-parseLogicalNot --inner--> dispatching
 parseLogicalNot --inner--> parseRelational
 parseRelational --inner--> parseArithmetic
 parseArithmetic --inner--> parseTerm
@@ -1008,7 +1083,6 @@ parseAssignment --inner--> parseExpression
 parseExpression --inner--> parseLogicalOr
 parseLogicalOr --inner--> parseLogicalAnd
 parseLogicalAnd --inner--> parseLogicalNot
-parseLogicalNot --inner--> dispatching
 parseLogicalNot --inner--> parseRelational
 parseRelational --inner--> parseArithmetic
 parseArithmetic --inner--> parseTerm
@@ -1040,7 +1114,6 @@ parseAssignment --outer--> parseExpression
 parseExpression --outer--> parseLogicalOr
 parseLogicalOr --outer--> parseLogicalAnd
 parseLogicalAnd --outer--> parseLogicalNot
-parseLogicalNot --outer--> dispatching
 parseLogicalNot --outer--> parseRelational
 parseRelational --outer--> parseArithmetic
 parseArithmetic --outer--> parseTerm
@@ -1073,7 +1146,6 @@ ASSIGN_OP --0--> parseExpression
 parseExpression --0--> parseLogicalOr
 parseLogicalOr --0--> parseLogicalAnd
 parseLogicalAnd --0--> parseLogicalNot
-parseLogicalNot --0--> dispatching
 parseLogicalNot --0--> parseRelational
 parseRelational --0--> parseArithmetic
 parseArithmetic --0--> parseTerm
@@ -1092,7 +1164,6 @@ parseFor --j--> parseExpression
 parseExpression --j--> parseLogicalOr
 parseLogicalOr --j--> parseLogicalAnd
 parseLogicalAnd --j--> parseLogicalNot
-parseLogicalNot --j--> dispatching
 parseLogicalNot --j--> parseRelational
 parseRelational --j--> parseArithmetic
 parseArithmetic --j--> parseTerm
@@ -1123,7 +1194,6 @@ parseIf --condition--> parseExpression
 parseExpression --j--> parseLogicalOr
 parseLogicalOr --j--> parseLogicalAnd
 parseLogicalAnd --j--> parseLogicalNot
-parseLogicalNot --j--> dispatching
 parseLogicalNot --j--> parseRelational
 parseRelational --j--> parseArithmetic
 parseArithmetic --j--> parseTerm
@@ -1161,7 +1231,6 @@ parseIf --condition--> parseExpression
 parseExpression --j--> parseLogicalOr
 parseLogicalOr --j--> parseLogicalAnd
 parseLogicalAnd --j--> parseLogicalNot
-parseLogicalNot --j--> dispatching
 parseLogicalNot --j--> parseRelational
 parseRelational --j--> parseArithmetic
 parseArithmetic --j--> parseTerm
@@ -1210,7 +1279,6 @@ ASSIGN_OP --0--> parseExpression
 parseExpression --0--> parseLogicalOr
 parseLogicalOr --0--> parseLogicalAnd
 parseLogicalAnd --0--> parseLogicalNot
-parseLogicalNot --0--> dispatching
 parseLogicalNot --0--> parseRelational
 parseRelational --0--> parseArithmetic
 parseArithmetic --0--> parseTerm
@@ -1229,7 +1297,6 @@ parseFor --k--> parseExpression
 parseExpression --k--> parseLogicalOr
 parseLogicalOr --k--> parseLogicalAnd
 parseLogicalAnd --k--> parseLogicalNot
-parseLogicalNot --k--> dispatching
 parseLogicalNot --k--> parseRelational
 parseRelational --k--> parseArithmetic
 parseArithmetic --k--> parseTerm
@@ -1262,7 +1329,6 @@ ASSIGN_OP --0--> parseExpression
 parseExpression --0--> parseLogicalOr
 parseLogicalOr --0--> parseLogicalAnd
 parseLogicalAnd --0--> parseLogicalNot
-parseLogicalNot --0--> dispatching
 parseLogicalNot --0--> parseRelational
 parseRelational --0--> parseArithmetic
 parseArithmetic --0--> parseTerm
@@ -1281,7 +1347,6 @@ parseFor --l--> parseExpression
 parseExpression --l--> parseLogicalOr
 parseLogicalOr --l--> parseLogicalAnd
 parseLogicalAnd --l--> parseLogicalNot
-parseLogicalNot --l--> dispatching
 parseLogicalNot --l--> parseRelational
 parseRelational --l--> parseArithmetic
 parseArithmetic --l--> parseTerm
