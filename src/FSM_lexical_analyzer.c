@@ -29,6 +29,16 @@ int str_equal(const char *str1, const char *str2) {
     }
     return (str1[i] == '\0' && str2[i] == '\0');
 }
+int str_contains(const char *str, char c) {
+    int i = 0;
+    while (str[i] != '\0') {
+        if (str[i] == c) {
+            return 1; // Found it
+        }
+        i++;
+    }
+    return 0; // Not found
+}
 
 int isLetter(char letter1, char letter2[]) {
     for (int i = 0; i < lensm; i++) {
@@ -87,7 +97,6 @@ int main() {
 
     while ((c = fgetc(fp)) != EOF) {
 
-        //printf("DEBUG: state = %d, char = '%c'(ASCII = %d), idx = %d\n", state, c, c, idx);
         switch (state) {
 
             //Starting state 0
@@ -1443,7 +1452,8 @@ int main() {
                 if (c == '"') {
                     buffer[idx] = '\0';
 
-                    if (strchr(buffer, '{') != NULL && strchr(buffer, '}') != NULL) {
+                    // Check if buffer contains '{' OR '}'
+                    if (str_contains(buffer, '{') || str_contains(buffer, '}')) {
                         printf("STRING_INTERP(%s)\n", buffer);
                         fprintf(out, "STRING_INTERP(%s)\n", buffer);
                     } else {

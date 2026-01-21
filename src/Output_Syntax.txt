@@ -1,19 +1,20 @@
 parseProgram --main--> Finding main()
-parseProgram --{--> parseBlock
-parseBlock --{--> dispatching
+parseProgram --begin--> parseBlock
+parseBlock --begin--> dispatching
+parseBlock --begin--> body
 parseBlock --const--> parseStatement
 parseStatement --const--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
 parseStatement --const--> parseDeclaration
-ASSIGN_OP --3.14--> parseExpression
-parseExpression --3.14--> parseLogicalOr
-parseLogicalOr --3.14--> parseLogicalAnd
-parseLogicalAnd --3.14--> parseLogicalNot
-parseLogicalNot --3.14--> dispatching
-parseLogicalNot --3.14--> parseRelational
-parseRelational --3.14--> parseArithmetic
-parseArithmetic --3.14--> parseTerm
-parseTerm --3.14--> parseFactor
-parseFactor --3.14--> dispatching
+ASSIGN_OP --3--> parseExpression
+parseExpression --3--> parseLogicalOr
+parseLogicalOr --3--> parseLogicalAnd
+parseLogicalAnd --3--> parseLogicalNot
+parseLogicalNot --3--> dispatching
+parseLogicalNot --3--> parseRelational
+parseRelational --3--> parseArithmetic
+parseArithmetic --3--> parseTerm
+parseTerm --3--> parseFactor
+parseFactor --3--> dispatching
 parseFactor: DONE
 parseTerm: DONE
 parseArithmetic: DONE
@@ -148,7 +149,6 @@ parseFunctionDef --{--> parseBlock
 parseBlock --{--> dispatching
 parseBlock --return--> parseStatement
 parseStatement --return--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-parseStatement --f--> parseExpression
 parseExpression --f--> parseLogicalOr
 parseLogicalOr --f--> parseLogicalAnd
 parseLogicalAnd --f--> parseLogicalNot
@@ -170,7 +170,20 @@ parseRelational: DONE
 parseLogicalNot: DONE
 parseLogicalAnd: DONE
 parseLogicalOr:  DONE
-parseExpression: DONE
+parseStatement: DONE
+parseFunctionDef: DONE
+parseStatement: DONE
+parseBlock --void--> parseStatement
+parseStatement --void--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --void--> parseFunctionDef
+parseFunctionDef --void--> dispatching
+parseFunctionDef --{--> parseBlock
+parseBlock --{--> dispatching
+parseBlock --output--> parseStatement
+parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --output--> parseOutput
+parseOutput --output--> dispatching
+parseOutput: DONE
 parseStatement: DONE
 parseFunctionDef: DONE
 parseStatement: DONE
@@ -505,7 +518,6 @@ parseTerm --add--> parseFactor
 parseFactor --add--> dispatching
 parseFactor --add--> parseFunctionCall
 parseFunctionCall --add--> dispatching
-parseFunctionCall --10--> parseExpression
 parseExpression --10--> parseLogicalOr
 parseLogicalOr --10--> parseLogicalAnd
 parseLogicalAnd --10--> parseLogicalNot
@@ -522,8 +534,6 @@ parseRelational: DONE
 parseLogicalNot: DONE
 parseLogicalAnd: DONE
 parseLogicalOr:  DONE
-parseExpression: DONE
-parseFunctionCall --20--> parseExpression
 parseExpression --20--> parseLogicalOr
 parseLogicalOr --20--> parseLogicalAnd
 parseLogicalAnd --20--> parseLogicalNot
@@ -540,7 +550,6 @@ parseRelational: DONE
 parseLogicalNot: DONE
 parseLogicalAnd: DONE
 parseLogicalOr:  DONE
-parseExpression: DONE
 parseFunctionCall: DONE
 parseFactor: DONE
 parseTerm: DONE

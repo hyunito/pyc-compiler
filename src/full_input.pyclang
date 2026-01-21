@@ -3,10 +3,12 @@
 */
 main() begin {
 
-    const float pi = 3.14;
+    const float pi = 3;
     int x = 10, y = 5;
+    int b, c;
     str a;
-    char letter = "A";
+    
+    char letter = 'A';
     bool isTrue = True;
     bool isFalse = False;
 
@@ -14,16 +16,24 @@ main() begin {
         return f + g;
     }
 
-    void sub(int f, int g) {
-            output("{g - f}");
+    void display(int m, int n) {
+            output("{m} and {n}");
     }
     int z[] = {2, 3, 4};
 
-    output("=== PyC Language Test ===");
     a = input("Enter your name: ");
+    x = y;
+    b = 42;
+    c = b * 2 - 5;
+
+
+    output("=== PyC Language Test ===");
+
+    output("{a}");
+
     output("Hello {a}");
 
-    int c;
+
     c = x + y;
     c = x - y;
     c = x * y;
@@ -44,6 +54,16 @@ main() begin {
     c = add(10, 20);
     output("Result of add function: {c}");
 
+   if (b > 10) then {
+        output("B is greater than 10");
+    }
+
+    if (c == 30) {
+        output("C is equal to 30");
+    } else (c != 0) {
+        output("C is not equal to 0");
+    }
+
     if (x > 5 and not isFalse) then {
         output("Condition 1 Met: x > 5 AND not False");
     } else if (x <= 5 or isTrue) then {
@@ -52,18 +72,11 @@ main() begin {
         output("No conditions met");
     }
 
-    if (c == 30) {
-        output("C is equal to 30");
-    }
-    if (c != 0) {
-        output("C is not equal to 0");
-    }
-
+    
     int i = 0;
     while (i >= 3) do {
         output("While Loop Iteration: {i}");
         i = i + 1;
-
         if (i == null) {
             break;
         }

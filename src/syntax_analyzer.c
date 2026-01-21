@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-
+#include <stdlib.h>
 #define MAX_IDENTIFIERS 1000
 #define TRACK 1
 #define TRACK1 1
@@ -17,6 +17,7 @@ typedef struct {
     char type[20];
     int isDeclared;
     char value[256];
+    int isConst;
     int paramCount;
     char paramTypes[MAX_PARAMS][20];
 } Identifier;
@@ -39,6 +40,7 @@ void initLookahead() {
 int lines = 1;
 int errorCount = 0;
 int braceBalance = 0;
+int loopLevel = 0;
 int previousLine = 1;
 
 Identifier symbolTable[MAX_IDENTIFIERS];
@@ -123,7 +125,9 @@ int match(const char* expected) {
     return 0;
 }
 
-void declareIdentifier(const char* name, const char* type) {
+
+
+void declareIdentifier(const char* name, const char* type, int isConst) {
     for (int i = 0; i < symbolCount; i++) {
         if (strcmp(symbolTable[i].name, name) == 0) {
             printf("Semantic Error at Line %d: Identifier '%s' is already declared.\n", peekAt(0).line, name);
@@ -133,6 +137,7 @@ void declareIdentifier(const char* name, const char* type) {
         }
     }
 
+
     if (symbolCount < MAX_IDENTIFIERS) {
         strncpy(symbolTable[symbolCount].name, name, sizeof(symbolTable[symbolCount].name)-1);
         symbolTable[symbolCount].name[sizeof(symbolTable[symbolCount].name)-1] = '\0';
@@ -141,6 +146,22 @@ void declareIdentifier(const char* name, const char* type) {
         symbolTable[symbolCount].type[sizeof(symbolTable[symbolCount].type)-1] = '\0';
 
         symbolTable[symbolCount].isDeclared = 1;
+        symbolTable[symbolCount].isConst = isConst;
+        symbolTable[symbolCount].paramCount = 0;
+        symbolCount++;
+    }
+
+
+    if (symbolCount < MAX_IDENTIFIERS) {
+        strncpy(symbolTable[symbolCount].name, name, sizeof(symbolTable[symbolCount].name)-1);
+        symbolTable[symbolCount].name[sizeof(symbolTable[symbolCount].name)-1] = '\0';
+
+        strncpy(symbolTable[symbolCount].type, type, sizeof(symbolTable[symbolCount].type)-1);
+        symbolTable[symbolCount].type[sizeof(symbolTable[symbolCount].type)-1] = '\0';
+
+        symbolTable[symbolCount].isDeclared = 1;
+        symbolTable[symbolCount].isConst = isConst;
+        symbolTable[symbolCount].paramCount = 0;
         symbolCount++;
     }
 }
@@ -587,7 +608,6 @@ void parseDeclaration() {
 
     char declaredType[20];
     strncpy(declaredType, peekAt(0).value, sizeof(declaredType)-1);
-
     declaredType[sizeof(declaredType)-1] = '\0';
 
     match("RESERVED_WORD");
@@ -605,7 +625,8 @@ void parseDeclaration() {
         char idname[100];
         strncpy(idname, peekAt(0).value, sizeof(idname)-1);
         idname[sizeof(idname)-1] = '\0';
-        declareIdentifier(idname, declaredType);
+
+        declareIdentifier(idname, declaredType, isConst);
         parseArrayAssignment();
         if (TRACK1) {
             printf("parseArrayAssignment: DONE\n");
@@ -614,15 +635,13 @@ void parseDeclaration() {
         return;
     }
 
-
-
     while (1) {
         char idname[100];
         strncpy(idname, peekAt(0).value, sizeof(idname)-1);
         idname[sizeof(idname)-1] = '\0';
         match("IDENTIFIER");
 
-        declareIdentifier(idname, declaredType);
+        declareIdentifier(idname, declaredType, isConst);
 
         if (strcmp(peekAt(0).type, "ASSIGN_OP") == 0) {
             match("ASSIGN_OP");
@@ -664,10 +683,25 @@ void parseDeclaration() {
             }
             else {
                 logTransition("ASSIGN_OP", peekAt(0).value, "parseExpression");
-                parseExpression();
+
+                // 1. Capture the type of the value being assigned
+                const char* rhsType = parseExpression();
+
                 if (TRACK1) {
                     printf("parseExpression: DONE\n");
                     fprintf(out, "parseExpression: DONE\n");
+                }
+
+                // 2. Compare declared type vs value type
+                if (strcmp(declaredType, rhsType) != 0) {
+                    // (Optional) Allow assigning int to float?
+                    if (strcmp(declaredType, "float") == 0 && strcmp(rhsType, "int") == 0) {
+                        // Safe implicit cast, do nothing
+                    } else {
+                        printf("Semantic Error at Line %d: Type mismatch. Cannot assign %s to variable of type %s.\n", peekAt(0).line, rhsType, declaredType);
+                        fprintf(out, "Semantic Error at Line %d: Type mismatch. Cannot assign %s to variable of type %s.\n", peekAt(0).line, rhsType, declaredType);
+                        errorCount++;
+                    }
                 }
             }
         }
@@ -1043,6 +1077,7 @@ void parseFor() {
 
 void parseAssignment() {
     logTransition("parseAssignment", peekAt(0).value, "dispatching");
+
     if (strcmp(peekAt(0).type, "IDENTIFIER") != 0) {
         printf("Syntax Error at Line %d: Assignment must start with identifier.\n", peekAt(0).line);
         fprintf(out, "Syntax Error at Line %d: Assignment must start with identifier.\n", peekAt(0).line);
@@ -1054,6 +1089,12 @@ void parseAssignment() {
     char namebuf[100];
     strncpy(namebuf, peekAt(0).value, sizeof(namebuf)-1);
     namebuf[sizeof(namebuf)-1] = '\0';
+    Identifier* id = getIdentifier(namebuf);
+    if(id && id->isConst){
+        printf("Semantic Error at Line %d: Cannot reassign constant '%s'.\n", peekAt(0).line, namebuf);
+        fprintf(out, "Semantic Error at Line %d: Cannot reassign constant '%s'.\n", peekAt(0).line, namebuf);
+        errorCount++;
+    }
 
     const char* targetType = getIdentifierType(namebuf);
 
@@ -1094,10 +1135,25 @@ void parseAssignment() {
         match("RIGHT_PAREN");
     } else {
         logTransition("parseAssignment", peekAt(0).value, "parseExpression");
-        parseExpression();
+
+        // 1. Capture the type
+        const char* rhsType = parseExpression();
+
         if (TRACK1) {
             printf("parseExpression: DONE\n");
             fprintf(out, "parseExpression: DONE\n");
+        }
+
+        if (strcmp(targetType, "unknown") != 0 && strcmp(rhsType, "unknown") != 0) {
+            if (strcmp(targetType, rhsType) != 0) {
+                if (strcmp(targetType, "float") == 0 && strcmp(rhsType, "int") == 0) {
+
+                } else {
+                    printf("Semantic Error at Line %d: Type mismatch. Cannot assign %s to variable '%s' of type %s.\n", peekAt(0).line, rhsType, namebuf, targetType);
+                    fprintf(out, "Semantic Error at Line %d: Type mismatch. Cannot assign %s to variable '%s' of type %s.\n", peekAt(0).line, rhsType, namebuf, targetType);
+                    errorCount++;
+                }
+            }
         }
     }
 
@@ -1350,7 +1406,7 @@ void parseFunctionDef() {
     strncpy(fname, peekAt(0).value, sizeof(fname)-1);
     fname[sizeof(fname)-1] = '\0';
     
-    declareIdentifier(fname, returnType); 
+    declareIdentifier(fname, returnType, 0);
     
     strncpy(currentFunctionReturnType, returnType, sizeof(currentFunctionReturnType)-1);
 
@@ -1383,8 +1439,8 @@ void parseFunctionDef() {
                 return;
             }
 
-             declareIdentifier(peekAt(0).value, paramType);
-            
+            declareIdentifier(peekAt(0).value, paramType, 0);
+
             if (funcId && funcId->paramCount < MAX_PARAMS) {
                 strncpy(funcId->paramTypes[funcId->paramCount], paramType, 19);
                 funcId->paramCount++;
@@ -1784,6 +1840,14 @@ const char* parseFactor() {
 }
 
 int main() {
+    printf("Running Lexer...\n");
+    int result = system("gcc FSM_lexical_analyzer.c -o lexer && lexer");
+
+    if (result != 0) {
+        printf("Error: Lexer failed to run.\n");
+        return 1;
+    }
+    printf("Lexer finished. Starting Parser...\n\n");
     tokenFile = fopen("Symbol_Table.txt", "r");
     if (!tokenFile) {
         printf("Error: Cannot open Symbol_Table.txt\n");
