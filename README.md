@@ -1,4 +1,4 @@
-# PPL Compiler Design Project
+# Compiler Design Project
 ## Lexical Analyzer and Syntax Analyzer Implementation
 
 ---
@@ -207,6 +207,7 @@ All checks performed are structural only.
 ## 9. Conclusion
 
 This project implements a complete compiler front-end consisting of a **pure FSM-based lexical analyzer** and a **recursive descent syntax analyzer equivalent to a pushdown automaton**. The design strictly follows compiler theory principles and satisfies the course requirements.
+
 
 
 
