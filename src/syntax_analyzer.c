@@ -31,10 +31,10 @@ FILE *tokenFile;
 FILE *out;
 
 
-Token lookahead[3];
+Token look[3];
 void initLookahead() {
     for (int i = 0; i < 3; i++) {
-        lookahead[i] = getNextToken();
+        look[i] = getNextToken();
     }
 }
 int lines = 1;
@@ -64,7 +64,7 @@ int isAtEnd() {
 
 Token peekAt(int offset) {
     if (offset >= 0 && offset < 3)
-        return lookahead[offset];
+        return look[offset];
     return EOF_TOKEN;
 }
 
@@ -87,12 +87,12 @@ void logTransition(const char* from, const char* input, const char* to) {
 }
 
 void advance() {
-    if (lookahead[0].line > 0) {
-        previousLine = lookahead[0].line;
+    if (look[0].line > 0) {
+        previousLine = look[0].line;
     }
-    lookahead[0] = lookahead[1];
-    lookahead[1] = lookahead[2];
-    lookahead[2] = getNextToken();
+    look[0] = look[1];
+    look[1] = look[2];
+    look[2] = getNextToken();
 
 }
 
@@ -151,19 +151,6 @@ void declareIdentifier(const char* name, const char* type, int isConst) {
         symbolCount++;
     }
 
-
-    if (symbolCount < MAX_IDENTIFIERS) {
-        strncpy(symbolTable[symbolCount].name, name, sizeof(symbolTable[symbolCount].name)-1);
-        symbolTable[symbolCount].name[sizeof(symbolTable[symbolCount].name)-1] = '\0';
-
-        strncpy(symbolTable[symbolCount].type, type, sizeof(symbolTable[symbolCount].type)-1);
-        symbolTable[symbolCount].type[sizeof(symbolTable[symbolCount].type)-1] = '\0';
-
-        symbolTable[symbolCount].isDeclared = 1;
-        symbolTable[symbolCount].isConst = isConst;
-        symbolTable[symbolCount].paramCount = 0;
-        symbolCount++;
-    }
 }
 
 int isIdentifierDeclared(const char* name) {
@@ -251,8 +238,10 @@ int isConstTypeStart() {
 
 void recover() {
     logTransition("errorRecovery", peekAt(0).value, "dispatching");
-    if (isAtEnd()) return;
 
+    if (isAtEnd()) return;
+    printf("\t[Recovery] Skipping: %s (%s)\n", peekAt(0).type, peekAt(0).value);
+    fprintf(out, "\t[Recovery] Skipping: %s (%s)\n", peekAt(0).type, peekAt(0).value);
     advance();
 
     while (!isAtEnd()) {
@@ -265,25 +254,35 @@ void recover() {
         if (strcmp(peekAt(0).type, "RIGHT_BRACE") == 0) {
             return;
         }
+        if (isNoise("end")) {
+            return;
+        }
 
         if (strcmp(peekAt(0).type, "RESERVED_WORD") == 0 &&
             isTypeValue(peekAt(0).value)) {
             return;
-            }
+        }
 
-        if (strcmp(peekAt(0).type, "KEYWORD") == 0) {
-            if (strcmp(peekAt(0).value, "if") == 0 ||
-                strcmp(peekAt(0).value, "for") == 0 ||
-                strcmp(peekAt(0).value, "while") == 0 ||
-                strcmp(peekAt(0).value, "return") == 0 ||
-                strcmp(peekAt(0).value, "output") == 0 ||
-                strcmp(peekAt(0).value, "input") == 0) {
-                return;
-                }
+        if (isKeyword("if") ||
+            isKeyword("for") ||
+            isKeyword("while") ||
+            isKeyword("return") ||
+            isKeyword("output") ||
+            isKeyword("input") ||
+            isKeyword("break") ||
+            isKeyword("continue")) {
+            return;
         }
 
         if (strcmp(peekAt(0).type, "IDENTIFIER") == 0) {
-            return;
+            if (strcmp(peekAt(1).type, "ASSIGN_OP") == 0 ||    // x = ...
+                strcmp(peekAt(1).type, "LEFT_PAREN") == 0 ||   // myFunc(...)
+                strcmp(peekAt(1).type, "LEFT_BRACKET") == 0 || // arr[0] = ...
+                strcmp(peekAt(1).type, "INCREMENT") == 0 ||    // x++;
+                strcmp(peekAt(1).type, "DECREMENT") == 0) {    // x--;
+
+                return;
+            }
         }
 
         advance();
@@ -349,9 +348,9 @@ void parseBlock() {
         hasBrace = 1;
     }
 
-    if (!hasBegin && !hasBrace) {
-        printf("Syntax Error at Line %d: Expected '{' or 'begin' to start block but got %s (%s)\n", peekAt(0).line, peekAt(0).type, peekAt(0).value);
-        fprintf(out, "Syntax Error at Line %d: Expected '{' or 'begin' to start block but got %s (%s)\n", peekAt(0).line, peekAt(0).type, peekAt(0).value);
+    if (!hasBrace) {
+        printf("Syntax Error at Line %d: Expected '{' to start block but got %s (%s)\n", peekAt(0).line, peekAt(0).type, peekAt(0).value);
+        fprintf(out, "Syntax Error at Line %d: Expected '{' to start block but got %s (%s)\n", peekAt(0).line, peekAt(0).type, peekAt(0).value);
         errorCount++;
         recover();
         return;
@@ -684,7 +683,6 @@ void parseDeclaration() {
             else {
                 logTransition("ASSIGN_OP", peekAt(0).value, "parseExpression");
 
-                // 1. Capture the type of the value being assigned
                 const char* rhsType = parseExpression();
 
                 if (TRACK1) {
@@ -692,11 +690,10 @@ void parseDeclaration() {
                     fprintf(out, "parseExpression: DONE\n");
                 }
 
-                // 2. Compare declared type vs value type
                 if (strcmp(declaredType, rhsType) != 0) {
-                    // (Optional) Allow assigning int to float?
+
                     if (strcmp(declaredType, "float") == 0 && strcmp(rhsType, "int") == 0) {
-                        // Safe implicit cast, do nothing
+
                     } else {
                         printf("Semantic Error at Line %d: Type mismatch. Cannot assign %s to variable of type %s.\n", peekAt(0).line, rhsType, declaredType);
                         fprintf(out, "Semantic Error at Line %d: Type mismatch. Cannot assign %s to variable of type %s.\n", peekAt(0).line, rhsType, declaredType);
@@ -1136,7 +1133,6 @@ void parseAssignment() {
     } else {
         logTransition("parseAssignment", peekAt(0).value, "parseExpression");
 
-        // 1. Capture the type
         const char* rhsType = parseExpression();
 
         if (TRACK1) {
@@ -1173,21 +1169,17 @@ void parseArrayAssignment() {
 
     match("LEFT_BRACKET");
 
-    // --- MODIFIED SECTION START ---
     if (strcmp(peekAt(0).type, "RIGHT_BRACKET") != 0) {
         logTransition("parseArrayAssignment", peekAt(0).value, "parseExpression");
 
-        // 1. Capture the type inside the brackets
         const char* indexType = parseExpression();
 
-        // 2. Check if it is an integer
         if (strcmp(indexType, "int") != 0) {
             printf("Semantic Error at Line %d: Array size/index must be an integer, but got %s.\n", peekAt(0).line, indexType);
             fprintf(out, "Semantic Error at Line %d: Array size/index must be an integer, but got %s.\n", peekAt(0).line, indexType);
             errorCount++;
         }
     }
-    // --- MODIFIED SECTION END ---
 
     match("RIGHT_BRACKET");
 
@@ -1198,7 +1190,7 @@ void parseArrayAssignment() {
         if (strcmp(peekAt(0).type, "RIGHT_BRACE") != 0) {
             logTransition("parseArrayAssignment", peekAt(0).value, "parseExpression");
 
-            parseExpression(); // (Note: You could also add type checks here if you passed the array type in)
+            parseExpression();
 
             if (TRACK1) {
                 printf("parseExpression: DONE\n");
@@ -1214,7 +1206,7 @@ void parseArrayAssignment() {
                 }
             }
         }
-        match("RIGHT_BRACE"); // Note: You probably meant match("RIGHT_BRACE") here?
+        match("RIGHT_BRACE");
     } else {
         logTransition("parseArrayAssignment", peekAt(0).value, "parseExpression");
         parseExpression();
@@ -1635,9 +1627,8 @@ const char* parseArithmetic() {
             fprintf(out, "parseTerm:  DONE\n");
         }
 
-        // TYPE CHECK:  5 + "hello" should error
         if (strcmp(op, "+") == 0) {
-            // String concatenation allowed
+
             if (strcmp(leftType, "str") == 0 && strcmp(rightType, "str") == 0) {
                 leftType = "str";
             } else if (strcmp(leftType, "str") == 0 || strcmp(rightType, "str") == 0) {
@@ -1645,13 +1636,13 @@ const char* parseArithmetic() {
                 fprintf(out, "Semantic Error at Line %d: Cannot add %s and %s.\n", line, leftType, rightType);
                 errorCount++;
             } else {
-                // Numeric addition - promote to float if needed
+
                 if (strcmp(leftType, "float") == 0 || strcmp(rightType, "float") == 0) {
                     leftType = "float";
                 }
             }
         } else if (strcmp(op, "-") == 0) {
-            // Subtraction only works on numbers
+
             if (strcmp(leftType, rightType) != 0) {
                 printf("Semantic Error at Line %d: Cannot subtract %s and %s.\n", line, leftType, rightType);
                 fprintf(out, "Semantic Error at Line %d: Cannot subtract %s and %s.\n", line, leftType, rightType);
@@ -1692,7 +1683,6 @@ const char* parseTerm() {
             fprintf(out, "parseFactor:  DONE\n");
         }
 
-        // TYPE CHECK:  Cannot multiply/divide incompatible types
         if (strcmp(leftType, "str") == 0 || strcmp(rightType, "str") == 0) {
             printf("Semantic Error at Line %d: Cannot use operator '%s' with string type.\n", line, op);
             fprintf(out, "Semantic Error at Line %d: Cannot use operator '%s' with string type.\n", line, op);
@@ -1703,7 +1693,6 @@ const char* parseTerm() {
             errorCount++;
         }
 
-        // Result type promotion:  if either is float, result is float
         if (strcmp(leftType, "float") == 0 || strcmp(rightType, "float") == 0) {
             leftType = "float";
         }
@@ -1766,7 +1755,7 @@ const char* parseFactor() {
             }
             currentType = "unknown";
         }
-        // Check for Variable
+
         else {
             const char* varName = peekAt(0).value;
             if (!isIdentifierDeclared(varName)) {
@@ -1789,7 +1778,7 @@ const char* parseFactor() {
     else if (strcmp(peekAt(0).type, "LEFT_PAREN") == 0) {
         match("LEFT_PAREN");
         logTransition("parseFactor", peekAt(0).value, "parseExpression");
-        currentType = parseExpression(); // Recurse back to top
+        currentType = parseExpression();
         if (TRACK1) {
             printf("parseExpression:  DONE\n");
             fprintf(out, "parseExpression:  DONE\n");

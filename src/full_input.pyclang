@@ -1,12 +1,10 @@
-/* === PyC Master Test File ===
-   This file tests all tokens, keywords, and syntax rules defined in the PyC 
-*/
 main() begin {
 
-    const float pi = 3;
-    int x = 10, y = 5;
-    int b, c;
     str a;
+    int a = "Group 6";
+    int x = 67 y = 89;
+    int b, c;
+    str middle;
     
     char letter = 'A';
     bool isTrue = True;
@@ -19,17 +17,20 @@ main() begin {
     void display(int m, int n) {
             output("{m} and {n}");
     }
-    int z[] = {2, 3, 4};
+    int z["hi"] = {2, 3, 4};
+    int zz[] = {};
 
-    a = input("Enter your name: ");
-    x = y;
+    a = input("Enter your first name: ");
+    middle = input("");
+    str surname = input("Enter your surname: ");
+    x = ;
     b = 42;
     c = b * 2 - 5;
 
 
     output("=== PyC Language Test ===");
 
-    output("{a}");
+    output("{c}");
 
     output("Hello {a}");
 
@@ -37,8 +38,8 @@ main() begin {
     c = x + y;
     c = x - y;
     c = x * y;
-    float divRes;
-    divRes = x / y;
+    float DIVRES;
+    DIVRES = x / y;
     int modRes;
     modRes = x % 2;
     int expRes;
@@ -72,7 +73,6 @@ main() begin {
         output("No conditions met");
     }
 
-    
     int i = 0;
     while (i >= 3) do {
         output("While Loop Iteration: {i}");
@@ -103,12 +103,15 @@ main() begin {
     }
 
     for (int k = 0; k < 2; k++) {
-        for (int l = 0; l < 2; l++) {
+        for (int l = 0 l < 2; l++) {
             output("Nested For - k: {k}, l: {l}");
         }
     }
-
-    output("All tests completed successfully!");
+    const float pi = 3.14;
+    output("` ~ @ $ ^ & _  | \ . ?");
     return;
 } end
+/* === PyC Master Test File ===
+   This file tests all tokens, keywords, and syntax rules defined in the PyC
+*/
 # This is a single-line comment test

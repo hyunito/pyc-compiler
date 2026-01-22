@@ -2,40 +2,24 @@ parseProgram --main--> Finding main()
 parseProgram --begin--> parseBlock
 parseBlock --begin--> dispatching
 parseBlock --begin--> body
-parseBlock --const--> parseStatement
-parseStatement --const--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-parseStatement --const--> parseDeclaration
-ASSIGN_OP --3--> parseExpression
-parseExpression --3--> parseLogicalOr
-parseLogicalOr --3--> parseLogicalAnd
-parseLogicalAnd --3--> parseLogicalNot
-parseLogicalNot --3--> parseRelational
-parseRelational --3--> parseArithmetic
-parseArithmetic --3--> parseTerm
-parseTerm --3--> parseFactor
-parseFactor --3--> dispatching
-parseFactor: DONE
-parseTerm: DONE
-parseArithmetic: DONE
-parseRelational: DONE
-parseLogicalNot: DONE
-parseLogicalAnd: DONE
-parseLogicalOr:  DONE
-parseExpression: DONE
+parseBlock --str--> parseStatement
+parseStatement --str--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --str--> parseDeclaration
 parseDeclaration: DONE
 parseStatement: DONE
 parseBlock --int--> parseStatement
 parseStatement --int--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
 parseStatement --int--> parseDeclaration
-ASSIGN_OP --10--> parseExpression
-parseExpression --10--> parseLogicalOr
-parseLogicalOr --10--> parseLogicalAnd
-parseLogicalAnd --10--> parseLogicalNot
-parseLogicalNot --10--> parseRelational
-parseRelational --10--> parseArithmetic
-parseArithmetic --10--> parseTerm
-parseTerm --10--> parseFactor
-parseFactor --10--> dispatching
+Semantic Error at Line 4: Identifier 'a' is already declared.
+ASSIGN_OP --Group 6--> parseExpression
+parseExpression --Group 6--> parseLogicalOr
+parseLogicalOr --Group 6--> parseLogicalAnd
+parseLogicalAnd --Group 6--> parseLogicalNot
+parseLogicalNot --Group 6--> parseRelational
+parseRelational --Group 6--> parseArithmetic
+parseArithmetic --Group 6--> parseTerm
+parseTerm --Group 6--> parseFactor
+parseFactor --Group 6--> dispatching
 parseFactor: DONE
 parseTerm: DONE
 parseArithmetic: DONE
@@ -44,16 +28,21 @@ parseLogicalNot: DONE
 parseLogicalAnd: DONE
 parseLogicalOr:  DONE
 parseExpression: DONE
-COMMA --y--> parseDeclaration
-ASSIGN_OP --5--> parseExpression
-parseExpression --5--> parseLogicalOr
-parseLogicalOr --5--> parseLogicalAnd
-parseLogicalAnd --5--> parseLogicalNot
-parseLogicalNot --5--> parseRelational
-parseRelational --5--> parseArithmetic
-parseArithmetic --5--> parseTerm
-parseTerm --5--> parseFactor
-parseFactor --5--> dispatching
+Semantic Error at Line 4: Type mismatch. Cannot assign str to variable of type int.
+parseDeclaration: DONE
+parseStatement: DONE
+parseBlock --int--> parseStatement
+parseStatement --int--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --int--> parseDeclaration
+ASSIGN_OP --67--> parseExpression
+parseExpression --67--> parseLogicalOr
+parseLogicalOr --67--> parseLogicalAnd
+parseLogicalAnd --67--> parseLogicalNot
+parseLogicalNot --67--> parseRelational
+parseRelational --67--> parseArithmetic
+parseArithmetic --67--> parseTerm
+parseTerm --67--> parseFactor
+parseFactor --67--> dispatching
 parseFactor: DONE
 parseTerm: DONE
 parseArithmetic: DONE
@@ -62,6 +51,9 @@ parseLogicalNot: DONE
 parseLogicalAnd: DONE
 parseLogicalOr:  DONE
 parseExpression: DONE
+Syntax Error at Line 5: Expected SEMICOLON but got IDENTIFIER (y)
+errorRecovery --y--> dispatching
+	[Recovery] Skipping: IDENTIFIER (y)
 parseDeclaration: DONE
 parseStatement: DONE
 parseBlock --int--> parseStatement
@@ -191,15 +183,15 @@ parseStatement --int--> If | While | For | Expression | Output | Input | Functio
 parseStatement --int--> parseDeclaration
 parseDeclaration --z--> parseArrayAssignment
 parseArrayAssignment --z--> dispatching
-parseArrayAssignment --4--> parseExpression
-parseExpression --4--> parseLogicalOr
-parseLogicalOr --4--> parseLogicalAnd
-parseLogicalAnd --4--> parseLogicalNot
-parseLogicalNot --4--> parseRelational
-parseRelational --4--> parseArithmetic
-parseArithmetic --4--> parseTerm
-parseTerm --4--> parseFactor
-parseFactor --4--> dispatching
+parseArrayAssignment --hi--> parseExpression
+parseExpression --hi--> parseLogicalOr
+parseLogicalOr --hi--> parseLogicalAnd
+parseLogicalAnd --hi--> parseLogicalNot
+parseLogicalNot --hi--> parseRelational
+parseRelational --hi--> parseArithmetic
+parseArithmetic --hi--> parseTerm
+parseTerm --hi--> parseFactor
+parseFactor --hi--> dispatching
 parseFactor: DONE
 parseTerm: DONE
 parseArithmetic: DONE
@@ -207,6 +199,7 @@ parseRelational: DONE
 parseLogicalNot: DONE
 parseLogicalAnd: DONE
 parseLogicalOr:  DONE
+Semantic Error at Line 20: Array size/index must be an integer, but got str.
 parseArrayAssignment --2--> parseExpression
 parseExpression --2--> parseLogicalOr
 parseLogicalOr --2--> parseLogicalAnd
@@ -261,26 +254,49 @@ parseExpression: DONE
 parseArrayAssignment: DONE
 parseDeclaration: DONE
 parseStatement: DONE
+parseBlock --int--> parseStatement
+parseStatement --int--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --int--> parseDeclaration
+parseDeclaration --zz--> parseArrayAssignment
+parseArrayAssignment --zz--> dispatching
+parseArrayAssignment: DONE
+parseDeclaration: DONE
+parseStatement: DONE
 parseBlock --a--> parseStatement
 parseStatement --a--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
 parseStatement --a--> parseInput
 parseInput --a--> dispatching
 parseInput: DONE
 parseStatement: DONE
+parseBlock --middle--> parseStatement
+parseStatement --middle--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --middle--> parseInput
+parseInput --middle--> dispatching
+parseInput: DONE
+parseStatement: DONE
+parseBlock --str--> parseStatement
+parseStatement --str--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --str--> parseDeclaration
+parseDeclaration: DONE
+parseStatement: DONE
 parseBlock --x--> parseStatement
 parseStatement --x--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
 parseStatement --x--> parseAssignment
 parseAssignment: DONE
 parseAssignment --x--> dispatching
-parseAssignment --y--> parseExpression
-parseExpression --y--> parseLogicalOr
-parseLogicalOr --y--> parseLogicalAnd
-parseLogicalAnd --y--> parseLogicalNot
-parseLogicalNot --y--> parseRelational
-parseRelational --y--> parseArithmetic
-parseArithmetic --y--> parseTerm
-parseTerm --y--> parseFactor
-parseFactor --y--> dispatching
+parseAssignment --;--> parseExpression
+parseExpression --;--> parseLogicalOr
+parseLogicalOr --;--> parseLogicalAnd
+parseLogicalAnd --;--> parseLogicalNot
+parseLogicalNot --;--> parseRelational
+parseRelational --;--> parseArithmetic
+parseArithmetic --;--> parseTerm
+parseTerm --;--> parseFactor
+parseFactor --;--> dispatching
+Syntax Error at Line 26: Missing operand - Expected NUMBER, IDENTIFIER, STRING, or '(' but got SEMICOLON (;)
+parseFactor --;--> errorRecovery
+errorRecovery --;--> dispatching
+	[Recovery] Skipping: SEMICOLON (;)
 parseFactor: DONE
 parseTerm: DONE
 parseArithmetic: DONE
@@ -289,29 +305,9 @@ parseLogicalNot: DONE
 parseLogicalAnd: DONE
 parseLogicalOr:  DONE
 parseExpression: DONE
-parseStatement: DONE
-parseBlock --b--> parseStatement
-parseStatement --b--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-parseStatement --b--> parseAssignment
-parseAssignment: DONE
-parseAssignment --b--> dispatching
-parseAssignment --42--> parseExpression
-parseExpression --42--> parseLogicalOr
-parseLogicalOr --42--> parseLogicalAnd
-parseLogicalAnd --42--> parseLogicalNot
-parseLogicalNot --42--> parseRelational
-parseRelational --42--> parseArithmetic
-parseArithmetic --42--> parseTerm
-parseTerm --42--> parseFactor
-parseFactor --42--> dispatching
-parseFactor: DONE
-parseTerm: DONE
-parseArithmetic: DONE
-parseRelational: DONE
-parseLogicalNot: DONE
-parseLogicalAnd: DONE
-parseLogicalOr:  DONE
-parseExpression: DONE
+Syntax Error at Line 27: Expected SEMICOLON but got IDENTIFIER (b)
+errorRecovery --b--> dispatching
+	[Recovery] Skipping: IDENTIFIER (b)
 parseStatement: DONE
 parseBlock --c--> parseStatement
 parseStatement --c--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
@@ -381,6 +377,7 @@ parseTerm: DONE
 parseArithmetic --y--> parseTerm
 parseTerm --y--> parseFactor
 parseFactor --y--> dispatching
+Semantic Error at Line 38: Identifier 'y' is not declared
 parseFactor: DONE
 parseTerm:  DONE
 parseArithmetic: DONE
@@ -409,8 +406,10 @@ parseTerm: DONE
 parseArithmetic --y--> parseTerm
 parseTerm --y--> parseFactor
 parseFactor --y--> dispatching
+Semantic Error at Line 39: Identifier 'y' is not declared
 parseFactor: DONE
 parseTerm:  DONE
+Semantic Error at Line 39: Cannot subtract int and unknown.
 parseArithmetic: DONE
 parseRelational: DONE
 parseLogicalNot: DONE
@@ -435,6 +434,7 @@ parseFactor --x--> dispatching
 parseFactor: DONE
 parseTerm --y--> parseFactor
 parseFactor --y--> dispatching
+Semantic Error at Line 40: Identifier 'y' is not declared
 parseFactor:  DONE
 parseTerm: DONE
 parseArithmetic: DONE
@@ -449,11 +449,11 @@ parseStatement --float--> If | While | For | Expression | Output | Input | Funct
 parseStatement --float--> parseDeclaration
 parseDeclaration: DONE
 parseStatement: DONE
-parseBlock --divRes--> parseStatement
-parseStatement --divRes--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-parseStatement --divRes--> parseAssignment
+parseBlock --DIVRES--> parseStatement
+parseStatement --DIVRES--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --DIVRES--> parseAssignment
 parseAssignment: DONE
-parseAssignment --divRes--> dispatching
+parseAssignment --DIVRES--> dispatching
 parseAssignment --x--> parseExpression
 parseExpression --x--> parseLogicalOr
 parseLogicalOr --x--> parseLogicalAnd
@@ -466,6 +466,7 @@ parseFactor --x--> dispatching
 parseFactor: DONE
 parseTerm --y--> parseFactor
 parseFactor --y--> dispatching
+Semantic Error at Line 42: Identifier 'y' is not declared
 parseFactor:  DONE
 parseTerm: DONE
 parseArithmetic: DONE
@@ -1342,6 +1343,9 @@ parseLogicalNot: DONE
 parseLogicalAnd: DONE
 parseLogicalOr:  DONE
 parseExpression: DONE
+Syntax Error at Line 106: Expected SEMICOLON but got IDENTIFIER (l)
+errorRecovery --l--> dispatching
+	[Recovery] Skipping: IDENTIFIER (l)
 parseDeclaration: DONE
 parseFor --l--> parseExpression
 parseExpression --l--> parseLogicalOr
@@ -1355,10 +1359,27 @@ parseFactor --l--> dispatching
 parseFactor: DONE
 parseTerm: DONE
 parseArithmetic: DONE
-parseRelational --2--> parseArithmetic
-parseArithmetic --2--> parseTerm
-parseTerm --2--> parseFactor
-parseFactor --2--> dispatching
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr:  DONE
+Syntax Error at Line 106: Expected ';' after for-condition but got RIGHT_PAREN ())
+parseFor --)--> errorRecovery
+errorRecovery --)--> dispatching
+	[Recovery] Skipping: RIGHT_PAREN ())
+parseFor --output--> parseExpression
+parseExpression --output--> parseLogicalOr
+parseLogicalOr --output--> parseLogicalAnd
+parseLogicalAnd --output--> parseLogicalNot
+parseLogicalNot --output--> parseRelational
+parseRelational --output--> parseArithmetic
+parseArithmetic --output--> parseTerm
+parseTerm --output--> parseFactor
+parseFactor --output--> dispatching
+Syntax Error at Line 107: Missing operand - Expected NUMBER, IDENTIFIER, STRING, or '(' but got KEYWORD (output)
+parseFactor --output--> errorRecovery
+errorRecovery --output--> dispatching
+	[Recovery] Skipping: KEYWORD (output)
 parseFactor: DONE
 parseTerm: DONE
 parseArithmetic: DONE
@@ -1366,20 +1387,41 @@ parseRelational: DONE
 parseLogicalNot: DONE
 parseLogicalAnd: DONE
 parseLogicalOr:  DONE
-parseFor --condition--> body
-parseFor --{--> parseBlock
-parseBlock --{--> dispatching
-parseBlock --output--> parseStatement
-parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
-parseStatement --output--> parseOutput
-parseOutput --output--> dispatching
-parseOutput: DONE
+parseExpression: DONE
+Syntax Error at Line 108: Expected ')' to close for loop header but got RIGHT_BRACE (})
+parseFor --}--> errorRecovery
+errorRecovery --}--> dispatching
+	[Recovery] Skipping: RIGHT_BRACE (})
+parseFor --}--> parseStatement
+parseStatement --}--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+Syntax Error at Line 109: Unknown statement starting with RIGHT_BRACE (})
+parseStatement --}--> errorRecovery
+errorRecovery --}--> dispatching
+	[Recovery] Skipping: RIGHT_BRACE (})
 parseStatement: DONE
-parseBlock: DONE
 parseFor: DONE
 parseStatement: DONE
-parseBlock: DONE
-parseFor: DONE
+parseBlock --float--> parseStatement
+parseStatement --float--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
+parseStatement --float--> parseDeclaration
+ASSIGN_OP --3.14--> parseExpression
+parseExpression --3.14--> parseLogicalOr
+parseLogicalOr --3.14--> parseLogicalAnd
+parseLogicalAnd --3.14--> parseLogicalNot
+parseLogicalNot --3.14--> parseRelational
+parseRelational --3.14--> parseArithmetic
+parseArithmetic --3.14--> parseTerm
+parseTerm --3.14--> parseFactor
+parseFactor --3.14--> dispatching
+parseFactor: DONE
+parseTerm: DONE
+parseArithmetic: DONE
+parseRelational: DONE
+parseLogicalNot: DONE
+parseLogicalAnd: DONE
+parseLogicalOr:  DONE
+parseExpression: DONE
+parseDeclaration: DONE
 parseStatement: DONE
 parseBlock --output--> parseStatement
 parseStatement --output--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
@@ -1391,5 +1433,11 @@ parseBlock --return--> parseStatement
 parseStatement --return--> If | While | For | Expression | Output | Input | Function Definition | Block | Declaration | Function call | Array assignment
 parseStatement: DONE
 parseBlock: DONE
+parseFor: DONE
+parseStatement: DONE
+Syntax Error at Line 113: Expected RIGHT_BRACE but got NOISE_WORD (end)
+errorRecovery --end--> dispatching
+	[Recovery] Skipping: NOISE_WORD (end)
+parseBlock: DONE
 parseProgram: DONE
-Parsing finished successfully.
+Parsing finished. Total errors: 17
